@@ -20,3 +20,11 @@ export const updateOng = async (id: string, data: Partial<IOng>) => {
 export const deleteOng = async (id: string) => {
     return await Ong.findByIdAndDelete(id);
 };
+
+export const getOngByUserId = async (usuario_id: string) => {
+    return await Ong.findOne({ usuario_id }).populate("usuario_id");
+};
+
+export const updateOngByUserId = async (usuario_id: string, data: Partial<IOng>) => {
+    return await Ong.findOneAndUpdate({ usuario_id }, data, { new: true }).populate("usuario_id");
+};

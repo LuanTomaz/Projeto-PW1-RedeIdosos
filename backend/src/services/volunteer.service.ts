@@ -20,3 +20,11 @@ export const updateVolunteer = async (id: string, data: Partial<IVolunteer>) => 
 export const deleteVolunteer = async (id: string) => {
     return await Volunteer.findByIdAndDelete(id);
 };
+
+export const getVolunteerByUserId = async (usuario_id: string) => {
+    return await Volunteer.findOne({ usuario_id }).populate("usuario_id");
+};
+
+export const updateVolunteerByUserId = async (usuario_id: string, data: Partial<IVolunteer>) => {
+    return await Volunteer.findOneAndUpdate({ usuario_id }, data, { new: true }).populate("usuario_id");
+};

@@ -17,7 +17,6 @@ import { verifyToken } from "../middlewares/auth_middleware";
 
 const router = Router();
 
-// CRUD Básico
 router.get("/", verifyToken, getReports);
 router.get("/me", verifyToken, getReportsByUser);
 router.post("/", verifyToken, createReport);

@@ -20,3 +20,11 @@ export const updateElder = async (id: string, data: Partial<IElder>) => {
 export const deleteElder = async (id: string) => {
     return await Elder.findByIdAndDelete(id);
 };
+
+export const getElderByUserId = async (usuario_id: string) => {
+    return await Elder.findOne({ usuario_id }).populate("usuario_id");
+};
+
+export const updateElderByUserId = async (usuario_id: string, data: Partial<IElder>) => {
+    return await Elder.findOneAndUpdate({ usuario_id }, data, { new: true }).populate("usuario_id");
+};

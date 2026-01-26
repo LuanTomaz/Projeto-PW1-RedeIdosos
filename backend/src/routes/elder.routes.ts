@@ -1,9 +1,12 @@
 import { Router } from "express";
-import { createElder, getElders, updateElder, deleteElder } from "../constrollers/elder.controller";
+import { createElder, getElders, updateElder, deleteElder, getMyProfile, updateMyProfile, updateMyLocation } from "../constrollers/elder.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 
 const router = Router();
 
+router.get("/me", verifyToken, getMyProfile);
+router.put("/me", verifyToken, updateMyProfile);
+router.put("/me/location", verifyToken, updateMyLocation);
 router.get("/", verifyToken, getElders);
 router.post("/", verifyToken, createElder);
 router.put("/:id", verifyToken, updateElder);
