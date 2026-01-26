@@ -88,3 +88,59 @@ export const blockUser = async (req: Request, res: Response) => {
         res.status(400).json({ error: err.message });
     }
 };
+
+// Endpoints de Filtros por Papel
+export const getVolunteers = async (req: Request, res: Response) => {
+    try {
+        const volunteers = await UserService.getUsersByRole('voluntario');
+        res.json(volunteers);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const getElders = async (req: Request, res: Response) => {
+    try {
+        const elders = await UserService.getUsersByRole('idoso');
+        res.json(elders);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const getOngs = async (req: Request, res: Response) => {
+    try {
+        const ongs = await UserService.getUsersByRole('ong');
+        res.json(ongs);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const getAdmins = async (req: Request, res: Response) => {
+    try {
+        const admins = await UserService.getUsersByRole('admin');
+        res.json(admins);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const getGestoresPublicos = async (req: Request, res: Response) => {
+    try {
+        const gestores = await UserService.getUsersByRole('gestor_publico');
+        res.json(gestores);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const getUnverifiedVolunteers = async (req: Request, res: Response) => {
+    try {
+        const volunteers = await UserService.getUsersByRole('voluntario');
+        const unverified = volunteers.filter((v: any) => !v.verificado);
+        res.json(unverified);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+};
