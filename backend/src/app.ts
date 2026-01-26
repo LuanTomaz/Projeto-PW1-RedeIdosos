@@ -10,6 +10,7 @@ import fileRoutes from './routes/file.routes';
 import companionshipRoutes from './routes/companionship.routes';
 import ongRoutes from './routes/ong.routes';
 import reviewRoutes from './routes/review.routes';
+import reportRoutes from './routes/report.routes';
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/companionships', companionshipRoutes);
 app.use('/api/ongs', ongRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err.stack);
