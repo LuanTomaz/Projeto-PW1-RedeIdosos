@@ -22,9 +22,69 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const getUsers = async (req: Request, res: Response) => {
     try {
-        const users = await UserService.getUsers();
+        const { papel } = req.query;
+        
+        let users;
+        if (papel) {
+            users = await UserService.getUsersByRole(papel as string);
+        } else {
+            users = await UserService.getUsers();
+        }
         res.json(users);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
+    }
+};
+
+// Endpoints de Validação/Verificação
+export const validateUser = async (req: Request, res: Response) => {
+    try {
+        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const user = await UserService.validateUser(id);
+        res.json({ message: "Usuário validado com sucesso", user });
+    } catch (err: any) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+export const changeUserRole = async (req: Request, res: Response) => {
+    try {
+        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { papel } = req.body;
+
+        if (!papel) {
+            return res.status(400).json({ error: "papel é obrigatório" });
+        }
+
+        const user = await UserService.changeUserRole(id, papel);
+        res.json({ message: "Papel do usuário alterado com sucesso", user });
+    } catch (err: any) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+export const changeUserStatus = async (req: Request, res: Response) => {
+    try {
+        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const { ativo } = req.body;
+
+        if (typeof ativo !== "boolean") {
+            return res.status(400).json({ error: "ativo deve ser um booleano" });
+        }
+
+        const user = await UserService.changeUserStatus(id, ativo);
+        res.json({ message: "Status do usuário alterado com sucesso", user });
+    } catch (err: any) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+export const blockUser = async (req: Request, res: Response) => {
+    try {
+        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const user = await UserService.blockUser(id);
+        res.json({ message: "Usuário bloqueado com sucesso", user });
+    } catch (err: any) {
+        res.status(400).json({ error: err.message });
     }
 };

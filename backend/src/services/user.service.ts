@@ -25,3 +25,48 @@ export const updateUser = async (id: string, data: Partial<IUser>) => {
 export const deleteUser = async (id: string) => {
     return await User.findByIdAndDelete(id);
 };
+
+// Endpoints de Validação/Verificação
+export const validateUser = async (userId: string) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        { verificado: true },
+        { new: true }
+    );
+};
+
+export const changeUserRole = async (userId: string, novoPapel: string) => {
+    const papelValidos = ['admin', 'gestor_publico', 'ong', 'voluntario', 'idoso'];
+    if (!papelValidos.includes(novoPapel)) {
+        throw new Error(`Papel inválido. Valores aceitos: ${papelValidos.join(", ")}`);
+    }
+    return await User.findByIdAndUpdate(
+        userId,
+        { papel: novoPapel },
+        { new: true }
+    );
+};
+
+export const changeUserStatus = async (userId: string, novoStatus: boolean) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        { ativo: novoStatus },
+        { new: true }
+    );
+};
+
+export const blockUser = async (userId: string) => {
+    return await User.findByIdAndUpdate(
+        userId,
+        { ativo: false },
+        { new: true }
+    );
+};
+
+export const getUsersByRole = async (papel: string) => {
+    const papelValidos = ['admin', 'gestor_publico', 'ong', 'voluntario', 'idoso'];
+    if (!papelValidos.includes(papel)) {
+        throw new Error(`Papel inválido. Valores aceitos: ${papelValidos.join(", ")}`);
+    }
+    return await User.find({ papel });
+};
