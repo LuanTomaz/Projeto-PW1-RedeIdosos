@@ -25,7 +25,7 @@ export const deleteCompanionship = async (id: string) => {
 // Endpoints de Status
 export const acceptCompanionship = async (companionshipId: string, voluntarioId: string) => {
     // Verificar se o voluntário existe e está verificado
-    const volunteer = await Volunteer.findById(voluntarioId);
+    const volunteer = await Volunteer.findOne({ usuario_id: voluntarioId });
     if (!volunteer) {
         throw new Error("Voluntário não encontrado");
     }

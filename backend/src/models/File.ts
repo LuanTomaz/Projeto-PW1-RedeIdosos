@@ -11,7 +11,11 @@ export interface IFile extends Document {
 }
 
 const FileSchema: Schema = new Schema({
-    entidade_tipo: { type: String, required: true },
+    entidade_tipo: {
+        type: String,
+        enum: ["user", "elder", "volunteer", "companionship", "ong", "review"],
+        required: true
+    },
     entidade_id: { type: Schema.Types.ObjectId, required: true },
     url_arquivo: { type: String, required: true },
     tipo_mime: { type: String, required: true },
