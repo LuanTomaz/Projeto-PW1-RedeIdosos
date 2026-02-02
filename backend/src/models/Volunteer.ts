@@ -6,18 +6,42 @@ export interface IVolunteer extends Document {
     disponibilidade?: string;
     area_atuacao?: string;
     verificado: boolean;
-    latitude?: number;
-    longitude?: number;
+    localizacao: {
+        type: { type: String, enum: ['Point'], required: true },
+        coordinates: { type: [Number], required: true } // [lng, lat]
+    }
+
 }
 
 const VolunteerSchema: Schema = new Schema({
-    usuario_id: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
-    documentos_url: [{ type: String }],
-    disponibilidade: { type: String },
-    area_atuacao: { type: String },
-    verificado: { type: Boolean, default: false },
-    latitude: { type: Number },
-    longitude: { type: Number }
+    usuario_id: {
+        type: Schema.Types.ObjectId,
+        ref: "User", required: true,
+        Funique: true
+    },
+    documentos_url: [{ 
+        type: String 
+    }],
+    disponibilidade: {
+        type: String
+    },
+    area_atuacao: {
+        type: String
+    },
+    verificado: {
+        type: Boolean, default: false
+    },
+    localizacao: {
+        type: {
+            type: String,
+            enum: ["Point"],
+            required: true
+        },
+        coordinates: {
+            type: [Number],
+            required: true
+        }
+    }
 }, { timestamps: true });
 
 export const Volunteer = mongoose.model<IVolunteer>("Volunteer", VolunteerSchema);

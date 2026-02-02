@@ -11,13 +11,32 @@ export interface IReport extends Document {
 }
 
 const ReportSchema: Schema = new Schema({
-    tipo: { type: String, required: true },
-    dados: { type: Schema.Types.Mixed, required: true },
-    gerado_em: { type: Date, default: Date.now },
-    usuario_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    data_inicio: { type: Date },
-    data_fim: { type: Date },
-    descricao: { type: String }
+    tipo: {
+        type: String,
+        required: true
+    },
+    dados: {
+        type: Schema.Types.Mixed,
+        required: true
+    },
+    gerado_em: {
+        type: Date,
+        default: Date.now
+    },
+    usuario_id: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    data_inicio: {
+        type: Date
+    },
+    data_fim: {
+        type: Date
+    },
+    descricao: {
+        type: String
+    }
 }, { timestamps: true });
 
 export const Report = mongoose.model<IReport>("Report", ReportSchema);

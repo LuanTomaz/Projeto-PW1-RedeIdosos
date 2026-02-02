@@ -16,12 +16,30 @@ const FileSchema: Schema = new Schema({
         enum: ["user", "elder", "volunteer", "companionship", "ong", "review"],
         required: true
     },
-    entidade_id: { type: Schema.Types.ObjectId, required: true },
-    url_arquivo: { type: String, required: true },
-    tipo_mime: { type: String, required: true },
-    tamanho: { type: Number, required: true },
-    usuario_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    data_upload: { type: Date, default: Date.now }
+    entidade_id: {
+        type: Schema.Types.ObjectId,
+        required: true
+    },
+    url_arquivo: {
+        type: String,
+        required: true
+    },
+    tipo_mime: {
+        type: String,
+        required: true
+    },
+    tamanho: {
+        type: Number,
+        required: true
+    },
+    usuario_id: {
+        type: Schema.Types.ObjectId,
+        ref: "User", required: true
+    },
+    data_upload: {
+        type: Date,
+        default: Date.now
+    }
 }, { timestamps: true });
 
 export const File = mongoose.model<IFile>("File", FileSchema);

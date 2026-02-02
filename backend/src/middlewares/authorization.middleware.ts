@@ -1,20 +1,40 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
+export interface JwtPayload {
+    id: string;
+    papel: string;
+}
+
 export interface AuthRequest extends Request {
-    user?: any;
+    user?: JwtPayload;
 }
 
 // Middleware para verificar token JWT
 export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Token não fornecido' });
+    const authHeader = req.headers.authorization;
 
-    jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, decoded) => {
-        if (err) return res.status(401).json({ message: 'Token inválido' });
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Authorization não fornecido' });
+    }
+
+    const [type, token] = authHeader.split(' ');
+
+    if (type !== 'Bearer' || !token) {
+        return res.status(401).json({ message: 'Token mal formatado' });
+    }
+
+    try {
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET as string
+        ) as JwtPayload;
+
         req.user = decoded;
         next();
-    });
+    } catch {
+        return res.status(401).json({ message: 'Token inválido ou expirado' });
+    }
 };
 
 // Middleware para verificar papel/permissão do usuário
@@ -27,7 +47,7 @@ export const authorizeRole = (allowedRoles: string[]) => {
         const userRole = req.user.papel;
 
         if (!allowedRoles.includes(userRole)) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 message: 'Acesso negado. Papel insuficiente.',
                 requiredRoles: allowedRoles,
                 userRole: userRole

@@ -15,16 +15,47 @@ export interface ICompanionship extends Document {
 }
 
 const CompanionshipSchema: Schema = new Schema({
-    idoso_id: { type: Schema.Types.ObjectId, ref: "Elder", required: true },
-    voluntario_id: { type: Schema.Types.ObjectId, ref: "Volunteer" },
-    atividade: { type: String, required: true },
-    descricao: { type: String },
-    data: { type: Date, required: true },
-    hora: { type: String, required: true },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    idoso_id: {
+        type: Schema.Types.ObjectId,
+        ref: "Elder",
+        required: true
+    },
+    voluntario_id: {
+        type: Schema.Types.ObjectId,
+        ref: "Volunteer"
+    },
+    atividade: {
+        type: String,
+        required: true
+    },
+    descricao: {
+        type: String
+    },
+    data: {
+        type: Date,
+        required: true
+    },
+    hora: {
+        type: String,
+        required: true
+    },
+    localizacao: {
+        type: {
+            type: String,
+            enum: ["Point"],
+            required: true
+        },
+        coordinates: {
+            type: [Number],
+            required: true
+        }
+    },
     local_descricao: { type: String },
-    status: { type: String, enum: ['pendente','aceita','em_andamento','concluida','cancelada'], default: 'pendente' },
+    status: {
+        type: String,
+        enum: ['pendente', 'aceita', 'em_andamento', 'concluida', 'cancelada'],
+        default: 'pendente'
+    },
     foto_comprovante_url: { type: String }
 }, { timestamps: true });
 
