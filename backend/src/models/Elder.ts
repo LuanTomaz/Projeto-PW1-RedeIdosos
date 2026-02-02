@@ -4,8 +4,8 @@ export interface IElder extends Document {
     usuario_id: mongoose.Types.ObjectId;
     endereco: string;
     localizacao: {
-        type: { type: String, enum: ['Point'], required: true },
-        coordinates: { type: [Number], required: true } // [lng, lat]
+        type: "Point" | string,
+        coordinates: [number, number] // [lng, lat]
     }
     data_nascimento: Date;
     necessidades_especiais?: string;
@@ -28,10 +28,16 @@ const ElderSchema: Schema = new Schema({
             enum: ["Point"],
             required: true
         },
-        coordinates: {
-            type: [Number],
-            required: true
-        }
+        coordinates: [
+            {
+                type:Number,
+                required: true
+            },
+            {
+                type: Number,
+                required:true
+            }
+        ]
     },
     data_nascimento: {
         type: Date,

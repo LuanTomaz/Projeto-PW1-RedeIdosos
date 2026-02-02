@@ -106,7 +106,17 @@ export const updateMyLocation = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ error: "Latitude e longitude são obrigatórias e devem ser números" });
         }
 
-        const volunteer = await VolunteerService.updateVolunteerByUserId(usuario_id, { latitude, longitude });
+        const updateData = {
+            localizacao: {
+            type: "Point",
+            coordinates: [
+                longitude,
+                latitude
+            ] as [number, number]
+            }
+        }
+
+        const volunteer = await VolunteerService.updateVolunteerByUserId(usuario_id, updateData );
         res.json(volunteer);
     } catch (err: any) {
         res.status(400).json({ error: err.message });

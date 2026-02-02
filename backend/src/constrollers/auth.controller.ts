@@ -11,6 +11,7 @@ interface AuthRequest extends Request {
     user?: any;
 }
 
+// Schema para usuário no geral
 const registerSchema = z.object({
     nome: z.string().min(3),
     email: z.string().email(),
@@ -18,23 +19,36 @@ const registerSchema = z.object({
     papel: z.enum(['voluntario', 'idoso'])
 });
 
+// Schema para idoso
 const registerElderSchema = registerSchema.extend({
     papel: z.literal('idoso'),
     endereco: z.string(),
-    latitude: z.number(),
-    longitude: z.number(),
+    localizacao : z.object({
+        type: z.literal("Point"),
+        coordinates: z.tuple([
+            z.number(), // latitude
+            z.number(), // longitude
+        ]),
+    }) ,
     data_nascimento: z.string(),
     necessidades_especiais: z.string().optional()
 });
 
+// Schema para voluntário
 const registerVolunteerSchema = registerSchema.extend({
     papel: z.literal('voluntario'),
     disponibilidade: z.string().optional(),
     area_atuacao: z.string().optional(),
-    latitude: z.number().optional(),
-    longitude: z.number().optional()
+    localizacao : z.object({
+        type: z.literal("Point"),
+        coordinates: z.tuple([
+            z.number(), // latitude
+            z.number(), // longitude
+        ]),
+    }) ,
 });
 
+// Schema pra ongs
 const registerOngSchema = z.object({
     nome: z.string().min(3),
     email: z.string().email(),
@@ -42,10 +56,16 @@ const registerOngSchema = z.object({
     cnpj: z.string(),
     responsavel: z.string(),
     telefone: z.string().optional(),
-    latitude: z.number().optional(),
-    longitude: z.number().optional()
+    localizacao : z.object({
+        type: z.literal("Point"),
+        coordinates: z.tuple([
+            z.number(), // latitude
+            z.number(), // longitude
+        ]),
+    }) ,
 });
 
+// Controller para login de um usuário
 export const login = async (req: Request, res: Response) => {
     try {
         const { email, senha_hash } = req.body;
@@ -57,7 +77,10 @@ export const login = async (req: Request, res: Response) => {
         if (!validPassword) return res.status(401).json({ error: "Senha incorreta" });
 
         const token = jwt.sign(
-            { id: user._id, papel: user.papel },
+            { 
+                id: user._id, 
+                papel: user.papel 
+            },
             process.env.JWT_SECRET || "secret",
             { expiresIn: "1d" }
         );
@@ -68,6 +91,7 @@ export const login = async (req: Request, res: Response) => {
     }
 };
 
+// Controller para registrar um idoso
 export const registerElder = async (req: Request, res: Response) => {
     try {
         const validated = registerElderSchema.parse(req.body);
@@ -94,8 +118,10 @@ export const registerElder = async (req: Request, res: Response) => {
         const elder = new Elder({
             usuario_id: user._id,
             endereco: validated.endereco,
-            latitude: validated.latitude,
-            longitude: validated.longitude,
+            localizacao:{
+                type: validated.localizacao.type,
+                coordinates: validated.localizacao.coordinates
+            },
             data_nascimento: new Date(validated.data_nascimento),
             necessidades_especiais: validated.necessidades_especiais
         });
@@ -119,6 +145,7 @@ export const registerElder = async (req: Request, res: Response) => {
     }
 };
 
+// Controller para registrar um voluntário.
 export const registerVolunteer = async (req: Request, res: Response) => {
     try {
         const validated = registerVolunteerSchema.parse(req.body);
@@ -146,8 +173,10 @@ export const registerVolunteer = async (req: Request, res: Response) => {
             usuario_id: user._id,
             disponibilidade: validated.disponibilidade,
             area_atuacao: validated.area_atuacao,
-            latitude: validated.latitude,
-            longitude: validated.longitude,
+            localizacao:{
+                type: validated.localizacao.type,
+                coordinates: validated.localizacao.coordinates
+            },
             verificado: false
         });
         await volunteer.save();
@@ -170,6 +199,7 @@ export const registerVolunteer = async (req: Request, res: Response) => {
     }
 };
 
+// Controller para registrar uma ong
 export const registerOng = async (req: Request, res: Response) => {
     try {
         const validated = registerOngSchema.parse(req.body);
@@ -199,8 +229,10 @@ export const registerOng = async (req: Request, res: Response) => {
             cnpj: validated.cnpj,
             responsavel: validated.responsavel,
             telefone: validated.telefone,
-            latitude: validated.latitude,
-            longitude: validated.longitude,
+            localizacao:{
+                type: validated.localizacao.type,
+                coordinates: validated.localizacao.coordinates
+            },
             ativo: true
         });
         await ong.save();

@@ -9,8 +9,13 @@ interface AuthRequest extends Request {
 const elderSchema = z.object({
     usuario_id: z.string(),
     endereco: z.string(),
-    latitude: z.number(),
-    longitude: z.number(),
+    localizacao: z.object({
+        type: z.literal("Point"),
+        coordinates: z.tuple([
+            z.number(), // latitude
+            z.number(), // longitude
+        ]),
+    }),
     data_nascimento: z.string(),
     necessidades_especiais: z.string().optional()
 });
@@ -21,6 +26,7 @@ export const createElder = async (req: Request, res: Response) => {
         const elder = await ElderService.createElder({
             ...validated,
             usuario_id: validated.usuario_id as any,
+            localizacao: validated.localizacao,
             data_nascimento: new Date(validated.data_nascimento)
         });
         res.status(201).json(elder);
@@ -106,7 +112,17 @@ export const updateMyLocation = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ error: "Latitude e longitude são obrigatórias e devem ser números" });
         }
 
-        const elder = await ElderService.updateElderByUserId(usuario_id, { latitude, longitude });
+        const updateData = {
+            localizacao: {
+                type: "Point",
+                coordinates: [
+                    longitude,
+                    latitude
+                ] as [number, number]
+            }
+        }
+
+        const elder = await ElderService.updateElderByUserId(usuario_id, updateData);
         res.json(elder);
     } catch (err: any) {
         res.status(400).json({ error: err.message });

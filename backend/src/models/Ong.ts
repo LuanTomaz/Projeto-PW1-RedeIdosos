@@ -8,8 +8,8 @@ export interface IOng extends Document {
     responsavel?: string;
     foto_url?: string;
     localizacao: {
-        type: { type: String, enum: ['Point'], required: true },
-        coordinates: { type: [Number], required: true } // [lng, lat]
+        type: "Point" | string,
+        coordinates: [number, number] // [lng, lat]
     }
     ativo: boolean;
 }
@@ -44,10 +44,16 @@ const OngSchema: Schema = new Schema({
             enum: ["Point"],
             required: true
         },
-        coordinates: {
-            type: [Number],
-            required: true
-        }
+        coordinates: [
+            {
+                type: Number,
+                required: true
+            },
+            {
+                type: Number,
+                required: true
+            }
+        ]
     },
     ativo: {
         type: Boolean,

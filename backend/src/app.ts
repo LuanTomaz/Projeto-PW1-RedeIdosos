@@ -22,7 +22,10 @@ app.use(json());
 // Servir arquivos estáticos
 app.use('/uploads', express.static('backend/uploads'));
 
+// Rota para autenticação de usuários
 app.use('/api/auth', authRoutes);
+
+// Rota para usuários
 app.use('/api/users', userRoutes);
 app.use('/api/elders', elderRoutes);
 app.use('/api/volunteers', volunteerRoutes);

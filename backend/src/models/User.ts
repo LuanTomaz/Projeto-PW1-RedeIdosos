@@ -41,7 +41,7 @@ const UserSchema: Schema = new Schema({
     },
     ativo: {
         type: Boolean, default: true
-    }
+    },
 }, { timestamps: true });
 
 export const User = mongoose.model<IUser>('User', UserSchema);

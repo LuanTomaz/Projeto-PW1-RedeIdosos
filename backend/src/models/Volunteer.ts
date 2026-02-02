@@ -7,8 +7,8 @@ export interface IVolunteer extends Document {
     area_atuacao?: string;
     verificado: boolean;
     localizacao: {
-        type: { type: String, enum: ['Point'], required: true },
-        coordinates: { type: [Number], required: true } // [lng, lat]
+        type: "Point" | string,
+        coordinates: [number, number] // [lng, lat]
     }
 
 }
@@ -31,16 +31,22 @@ const VolunteerSchema: Schema = new Schema({
     verificado: {
         type: Boolean, default: false
     },
-    localizacao: {
+     localizacao: {
         type: {
             type: String,
             enum: ["Point"],
             required: true
         },
-        coordinates: {
-            type: [Number],
-            required: true
-        }
+        coordinates: [
+            {
+                type:Number,
+                required: true
+            },
+            {
+                type: Number,
+                required:true
+            }
+        ]
     }
 }, { timestamps: true });
 
