@@ -20,21 +20,23 @@ const elderSchema = z.object({
     necessidades_especiais: z.string().optional()
 });
 
-export const createElder = async (req: Request, res: Response) => {
-    try {
-        const validated = elderSchema.parse(req.body);
-        const elder = await ElderService.createElder({
-            ...validated,
-            usuario_id: validated.usuario_id as any,
-            localizacao: validated.localizacao,
-            data_nascimento: new Date(validated.data_nascimento)
-        });
-        res.status(201).json(elder);
-    } catch (err: any) {
-        res.status(400).json({ error: err.message });
-    }
-};
+// Rota desativada para evitar criação manual de idosos
+// export const createElder = async (req: Request, res: Response) => {
+//     try {
+//         const validated = elderSchema.parse(req.body);
+//         const elder = await ElderService.createElder({
+//             ...validated,
+//             usuario_id: validated.usuario_id as any,
+//             localizacao: validated.localizacao,
+//             data_nascimento: new Date(validated.data_nascimento)
+//         });
+//         res.status(201).json(elder);
+//     } catch (err: any) {
+//         res.status(400).json({ error: err.message });
+//     }
+// };
 
+// Controlador para obter todos os idosos
 export const getElders = async (req: Request, res: Response) => {
     try {
         const elders = await ElderService.getElders();
@@ -44,6 +46,7 @@ export const getElders = async (req: Request, res: Response) => {
     }
 };
 
+// Controlador para atualizar um idoso pelo ID
 export const updateElder = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -54,17 +57,22 @@ export const updateElder = async (req: Request, res: Response) => {
     }
 };
 
+// Controlador para deletar um idoso pelo ID
 export const deleteElder = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         await ElderService.deleteElder(id);
-        res.status(204).send();
+        return res.status(200).json({
+            success: true,
+            message: "Idoso deletado com sucesso.",
+            id
+        });
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }
 };
 
-// Endpoints /me
+// Controller para obter o perfil do idoso autenticado
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
@@ -84,6 +92,7 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
     }
 };
 
+// Controller para atualizar o perfil do idoso autenticado
 export const updateMyProfile = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
@@ -99,6 +108,7 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
     }
 };
 
+// Controller para atualizar a localização do idoso autenticado
 export const updateMyLocation = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;

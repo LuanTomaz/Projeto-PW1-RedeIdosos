@@ -1,44 +1,61 @@
 import { Router } from "express";
-import { createElder, getElders, updateElder, deleteElder, getMyProfile, updateMyProfile, updateMyLocation } from "../constrollers/elder.controller";
+import { getElders, updateElder, deleteElder, getMyProfile, updateMyProfile, updateMyLocation } from "../constrollers/elder.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
-import { authorize, authorizeRole } from "../middlewares/authorization.middleware";
+import { authorize } from "../middlewares/authorization.middleware";
 
 const router = Router();
 
+// Rotas para obter o perfil do idoso autenticado
 router.get(
-    "/me",
+    "/me/profile",
     verifyToken,
+    authorize('idoso'),
     getMyProfile
 );
+
+// Rotas para atualizar o perfil e localização do idoso autenticado
 router.put(
-    "/me",
+    "/me/update",
     verifyToken,
+    authorize('idoso'),
     updateMyProfile
 );
+
+// Rota para atualizar apenas a localização do idoso autenticado
 router.put(
     "/me/location",
     verifyToken,
+    authorize('idoso'),
     updateMyLocation
 );
+
+// Rota para listar todos os idosos (acesso restrito a admins)
 router.get(
-    "/",
+    "/get-elders",
     verifyToken,
     authorize('admin'),
     getElders
 );
-router.post(
-    "/",
-    verifyToken,
-    createElder
-);
+// Por enquanto, criação de idoso é feita via auth.controller, e um idoso não pode criar outro idoso.
+// router.post(
+//     "/",
+//     verifyToken,
+//     createElder
+// );
+
+// Rota para atualizar um idoso pelo ID
 router.put(
-    "/:id",
+    "/:id/update-elder",
     verifyToken,
+    authorize('admin'),
     updateElder
 );
+
+// Rota para deletar um idoso pelo ID
 router.delete(
-    "/:id",
+    "/:id/delete",
     verifyToken,
+    authorize('admin'),
     deleteElder
 );
 
