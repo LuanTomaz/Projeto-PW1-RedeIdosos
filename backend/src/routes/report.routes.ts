@@ -15,6 +15,7 @@ import {
 } from "../controllers/report.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
+import { requireActiveUser } from "../middlewares/status";
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.get(
     "/all-reports", 
     verifyToken, 
     authorize('admin'),
+    requireActiveUser,
     getReports
 );
 
@@ -30,6 +32,7 @@ router.get(
 router.get(
     "/my-reports", 
     verifyToken, 
+    requireActiveUser,
     getReportsByUser
 );
 
@@ -37,6 +40,7 @@ router.get(
 router.post(
     "/create-report", 
     verifyToken, 
+    requireActiveUser,
     createReport
 );
 
@@ -45,6 +49,7 @@ router.get(
     "/:id/report", 
     verifyToken,
     authorize('admin'), 
+    requireActiveUser,
     getReportById
 );
 
@@ -53,6 +58,7 @@ router.put(
     "/:id/update-report", 
     verifyToken,
     authorize('admin'), 
+    requireActiveUser,
     updateReport
 );
 
@@ -61,6 +67,7 @@ router.delete(
     "/:id/delete-report", 
     verifyToken, 
     authorize('admin'),
+    requireActiveUser,
     deleteReport
 );
 
@@ -68,6 +75,7 @@ router.delete(
 router.get(
     "/type/:tipo", 
     verifyToken, 
+    requireActiveUser,
     getReportsByType
 );
 

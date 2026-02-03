@@ -16,6 +16,8 @@ router.post(
     "/login", 
     login
 );
+
+// Logout
 router.post(
     "/logout", 
     verifyToken, 
@@ -23,7 +25,6 @@ router.post(
 );
 
 // Registros (apenas para administrador)
-
 // Registrar um idoso
 router.post(
     "/profiles/elder",

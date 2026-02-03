@@ -45,20 +45,16 @@ router.get(
     "/get-elders",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     getElders
 );
-// Por enquanto, criação de idoso é feita via auth.controller, e um idoso não pode criar outro idoso.
-// router.post(
-//     "/",
-//     verifyToken,
-//     createElder
-// );
 
 // Rota para atualizar um idoso pelo ID
 router.put(
     "/:id/update-elder",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     updateElder
 );
 
@@ -67,6 +63,7 @@ router.delete(
     "/:id/delete-elder",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     deleteElderController
 );
 

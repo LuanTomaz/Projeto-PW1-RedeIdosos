@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createReview, getReviews, updateReview, deleteReview } from "../controllers/review.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { upload } from "../middlewares/upload";
+import { requireActiveUser } from "../middlewares/status";
 
 const router = Router();
 
@@ -9,6 +10,7 @@ const router = Router();
 router.get(
     "/view-reviews", 
     verifyToken, 
+    requireActiveUser,
     getReviews
 );
 
@@ -17,6 +19,7 @@ router.post(
     "/create-review", 
     verifyToken, 
     upload.single("foto"),
+    requireActiveUser,
     createReview
 );
 
@@ -25,6 +28,7 @@ router.put(
     "/:id/update-review", 
     verifyToken,
     upload.single("foto"),
+    requireActiveUser,
     updateReview
 );
 
@@ -32,6 +36,7 @@ router.put(
 router.delete(
     "/:id/delete-review", 
     verifyToken, 
+    requireActiveUser,
     deleteReview
 );
 

@@ -11,6 +11,7 @@ import {
 } from "../controllers/companionship.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
+import { requireActiveUser } from "../middlewares/status";
 import { upload } from "../middlewares/upload";
 
 const router = Router();
@@ -19,7 +20,8 @@ const router = Router();
 router.get(
     "/list-companionships",
     verifyToken,
-    authorize('admin'),
+    authorize('admin', 'voluntario', 'idoso'),
+    requireActiveUser,
     getCompanionships
 );
 
@@ -28,6 +30,7 @@ router.get(
     "/my-companionships",
     verifyToken,
     authorize('voluntario', 'idoso'),
+    requireActiveUser,
     getCompanionshipsByUser
 );
 
@@ -36,6 +39,7 @@ router.post(
     "/create-companionship",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     createCompanionship
 );
 
@@ -44,6 +48,7 @@ router.patch(
     "/:id/accept",
     verifyToken,
     authorize('voluntario'),
+    requireActiveUser,
     acceptCompanionship
 );
 
@@ -52,6 +57,7 @@ router.put(
     "/:id/update",
     verifyToken,
     authorize('admin', 'voluntario'),
+    requireActiveUser,
     updateCompanionship
 );
 
@@ -60,6 +66,7 @@ router.put(
     "/:id/status",
     verifyToken,
     authorize('admin', 'voluntario'),
+    requireActiveUser,
     updateCompanionshipStatus
 );
 
@@ -69,6 +76,7 @@ router.put(
     verifyToken,
     authorize('voluntario'),
     upload.single('foto_comprovante'),
+    requireActiveUser,
     completeCompanionship
 );
 
@@ -77,6 +85,7 @@ router.delete(
     "/:id/delete",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     deleteCompanionship
 );
 

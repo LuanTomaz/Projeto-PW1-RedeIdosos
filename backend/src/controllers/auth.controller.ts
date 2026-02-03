@@ -227,8 +227,7 @@ export const createOngProfile = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
-
+// Controller para logout (apenas informativo, JWT é stateless)
 export const logout = async (req: AuthRequest, res: Response) => {
     try {
         // JWT é stateless, logout é apenas informativo no frontend

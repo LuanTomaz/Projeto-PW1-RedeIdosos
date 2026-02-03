@@ -10,6 +10,7 @@ import {
 } from "../controllers/ong.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
+import { requireActiveUser } from "../middlewares/status";
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.get(
     "/profile",
     verifyToken,
     authorize('ong'),
+    requireActiveUser,
     getMyProfile
 );
 
@@ -26,6 +28,7 @@ router.put(
     "/update-profile",
     verifyToken,
     authorize('ong'),
+    requireActiveUser,
     updateMyProfile
 );
 
@@ -34,6 +37,7 @@ router.put(
     "/update-location",
     verifyToken,
     authorize('ong'),
+    requireActiveUser,
     updateMyLocation
 );
 
@@ -42,6 +46,7 @@ router.get(
     "/list-ongs",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     getOngs
 );
 
@@ -53,6 +58,7 @@ router.put(
     "/:id/update-ong",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     updateOng
 );
 
@@ -61,6 +67,7 @@ router.delete(
     "/:id/delete-ong",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     deleteOng
 );
 
