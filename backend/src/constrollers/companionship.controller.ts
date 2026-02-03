@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as CompanionshipService from "../services/companionship.service";
 import { z } from "zod";
+import cloudinary from "../config/cloudinary";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -13,13 +14,19 @@ const companionshipSchema = z.object({
     descricao: z.string().optional(),
     data: z.string(),
     hora: z.string(),
-    latitude: z.number(),
-    longitude: z.number(),
+    localizacao: z.object({
+        type: z.literal("Point"),
+        coordinates: z.tuple([
+            z.number(), // latitude
+            z.number(), // longitude
+        ]),
+    }),
     local_descricao: z.string().optional(),
-    status: z.enum(['pendente','aceita','em_andamento','concluida','cancelada']).optional(),
+    status: z.enum(['pendente', 'aceita', 'em_andamento', 'concluida', 'cancelada']).optional(),
     foto_comprovante_url: z.string().optional()
 });
 
+// Controller para criar uma nova companhia.
 export const createCompanionship = async (req: Request, res: Response) => {
     try {
         const validated = companionshipSchema.parse(req.body);
@@ -35,6 +42,7 @@ export const createCompanionship = async (req: Request, res: Response) => {
     }
 };
 
+// Controller para listar as companhias.
 export const getCompanionships = async (req: Request, res: Response) => {
     try {
         const companionships = await CompanionshipService.getCompanionships();
@@ -44,6 +52,7 @@ export const getCompanionships = async (req: Request, res: Response) => {
     }
 };
 
+// Controller para atualizar uma companhia.
 export const updateCompanionship = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -54,45 +63,66 @@ export const updateCompanionship = async (req: Request, res: Response) => {
     }
 };
 
+// Controller para deletar uma companhia.
 export const deleteCompanionship = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         await CompanionshipService.deleteCompanionship(id);
-        res.status(204).send();
+        return res.status(200).json({
+            success: true,
+            message: "Companhia deletada com sucesso.",
+            id
+        });
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }
 };
 
 // Endpoints de Status
-export const acceptCompanionship = async (req: Request, res: Response) => {
+export const acceptCompanionship = async (req: AuthRequest, res: Response) => {
     try {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        const { voluntario_id } = req.body;
+        const companionshipId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const voluntarioId = req.user?.id;
 
-        if (!voluntario_id) {
+        if (!voluntarioId) {
             return res.status(400).json({ error: "voluntario_id é obrigatório" });
         }
 
-        const companionship = await CompanionshipService.acceptCompanionship(id, voluntario_id);
+        const companionship = await CompanionshipService.acceptCompanionship(companionshipId, voluntarioId);
         res.json(companionship);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }
 };
 
+// Controller para completar uma companhia.
 export const completeCompanionship = async (req: Request, res: Response) => {
     try {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const companionshipId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+        if (!req.file) {
+            return res.status(400).json({ error: "Foto comprovante obrigatoria" });
+        }
+
+        const result = await cloudinary.uploader.upload(
+            `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
+            {
+                folder: "uploads/companionships",
+            }
+        );
         const { foto_comprovante_url } = req.body;
 
-        const companionship = await CompanionshipService.completeCompanionship(id, foto_comprovante_url);
+        const companionship = await CompanionshipService.completeCompanionship(
+            companionshipId,
+            result.secure_url
+        );
         res.json(companionship);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }
 };
 
+// Controller para atualizar o status de uma companhia.
 export const updateCompanionshipStatus = async (req: AuthRequest, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -109,10 +139,11 @@ export const updateCompanionshipStatus = async (req: AuthRequest, res: Response)
     }
 };
 
+// Controller para obter companhias por usuário (idoso ou voluntário).
 export const getCompanionshipsByUser = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.id;
-        const { userType } = req.query;
+        const userType = req.user?.papel;
 
         if (!userId) {
             return res.status(401).json({ error: "Usuário não autenticado" });

@@ -20,16 +20,18 @@ app.use(cors());
 app.use(json());
 
 // Servir arquivos estáticos
-app.use('/uploads', express.static('backend/uploads'));
+app.use('/uploads', express.static('backend/'));
 
 // Rota para autenticação de usuários
 app.use('/api/auth', authRoutes);
 
-// Rota para usuários
+// Rota para gerenciamento de usuários
 app.use('/api/users', userRoutes);
 app.use('/api/elders', elderRoutes);
 app.use('/api/volunteers', volunteerRoutes);
 app.use('/api/files', fileRoutes);
+
+// Rota para gerenciamento de companhias
 app.use('/api/companionships', companionshipRoutes);
 app.use('/api/ongs', ongRoutes);
 app.use('/api/reviews', reviewRoutes);

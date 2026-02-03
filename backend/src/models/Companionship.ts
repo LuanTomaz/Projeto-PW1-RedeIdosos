@@ -7,8 +7,10 @@ export interface ICompanionship extends Document {
     descricao?: string;
     data: Date;
     hora: string;
-    latitude: number;
-    longitude: number;
+    localizacao: {
+        type: "Point" | string,
+        coordinates: [number, number] // [lng, lat]
+    },
     local_descricao?: string;
     status: 'pendente' | 'aceita' | 'em_andamento' | 'concluida' | 'cancelada';
     foto_comprovante_url?: string;
@@ -45,10 +47,16 @@ const CompanionshipSchema: Schema = new Schema({
             enum: ["Point"],
             required: true
         },
-        coordinates: {
-            type: [Number],
-            required: true
-        }
+        coordinates: [
+            {
+                type:Number,
+                required: true
+            },
+            {
+                type: Number,
+                required:true
+            }
+        ]
     },
     local_descricao: { type: String },
     status: {
