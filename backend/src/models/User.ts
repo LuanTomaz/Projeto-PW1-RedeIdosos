@@ -4,7 +4,8 @@ export interface IUser extends Document {
     nome: string;
     email: string;
     senha_hash: string;
-    papel: 'admin' | 'gestor_publico' | 'ong' | 'voluntario' | 'idoso';
+    papel: 'pending' | 'admin' | 'gestor_publico' | 'ong' | 'voluntario' | 'idoso';
+    tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
     telefone?: string;
     foto_perfil_url?: string;
     verificado: boolean;
@@ -27,8 +28,13 @@ const UserSchema: Schema = new Schema({
     },
     papel: {
         type: String,
-        enum: ['admin', 'gestor_publico', 'ong', 'voluntario', 'idoso'],
+        enum: ['pending', 'admin', 'gestor_publico', 'ong', 'voluntario', 'idoso'],
         required: true
+    },
+    tipo_cadastro: {
+        type: String,
+        enum: ["idoso", "voluntario", "ong"],
+        required: true,
     },
     telefone: {
         type: String

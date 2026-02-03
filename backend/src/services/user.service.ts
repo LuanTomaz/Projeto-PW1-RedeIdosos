@@ -3,7 +3,13 @@ import bcrypt from "bcryptjs";
 
 export const createUser = async (data: Partial<IUser>) => {
     const hashedPassword = await bcrypt.hash(data.senha_hash!, 10);
-    const user = new User({ ...data, senha_hash: hashedPassword });
+    const user = new User({
+        ...data,
+        senha_hash: hashedPassword,
+        papel: "pending",
+        verificado: false,
+        ativo: false
+    });
     return await user.save();
 };
 
@@ -28,12 +34,40 @@ export const deleteUser = async (id: string) => {
 
 // Endpoints de Validação/Verificação
 export const validateUser = async (userId: string) => {
-    return await User.findByIdAndUpdate(
-        userId,
-        { verificado: true },
-        { new: true }
-    );
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error("Usuário não encontrado");
+  }
+
+  if (!user.ativo) {
+    throw new Error("Usuário ainda não completou o perfil");
+  }
+
+  let novoPapel: "idoso" | "voluntario" | "ong";
+
+  switch (user.tipo_cadastro) {
+    case "idoso":
+      novoPapel = "idoso";
+      break;
+    case "voluntario":
+      novoPapel = "voluntario";
+      break;
+    case "ong":
+      novoPapel = "ong";
+      break;
+    default:
+      throw new Error("Tipo de cadastro inválido");
+  }
+
+  user.papel = novoPapel;
+  user.verificado = true;
+
+  await user.save();
+
+  return user;
 };
+
 
 export const changeUserRole = async (userId: string, novoPapel: string) => {
     const papelValidos = ['admin', 'gestor_publico', 'ong', 'voluntario', 'idoso'];

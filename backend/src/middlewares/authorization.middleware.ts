@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 export interface JwtPayload {
     id: string;
     papel: string;
+    tipo_cadastro: string;
 }
 
 export interface AuthRequest extends Request {

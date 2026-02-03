@@ -1,23 +1,36 @@
 import { Request, Response } from "express";
 import * as UserService from "../services/user.service";
 import { z } from "zod";
+import { User } from "../models/User";
 
 // Usando validação com Zod
 const createUserSchema = z.object({
-    nome: z.string().min(3),
-    email: z.string().email(),
-    senha_hash: z.string().min(6),
-    papel: z.enum(['admin','gestor_publico','ong','voluntario','idoso']),
+  nome: z.string().min(3),
+  email: z.string().email(),
+  senha_hash: z.string().min(6),
+  tipo_cadastro: z.enum(["idoso", "voluntario", "ong"]),
 });
 
+
+// Controlalador para criação de usuário
 export const createUser = async (req: Request, res: Response) => {
-    try {
-        const validated = createUserSchema.parse(req.body);
-        const user = await UserService.createUser(validated);
-        res.status(201).json(user);
-    } catch (err: any) {
-        res.status(400).json({ error: err.message });
-    }
+  try {
+    // 1️⃣ Validação
+    const validated = createUserSchema.parse(req.body);
+
+    // 2️⃣ Criação do usuário base (service faz o resto)
+    const user = await UserService.createUser(validated);
+
+    // 3️⃣ Resposta
+    res.status(201).json({
+      message: "Usuário criado com sucesso. Complete seu cadastro.",
+      user,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      error: err.errors ?? err.message,
+    });
+  }
 };
 
 export const getUsers = async (req: Request, res: Response) => {
@@ -37,15 +50,20 @@ export const getUsers = async (req: Request, res: Response) => {
 };
 
 // Endpoints de Validação/Verificação
-export const validateUser = async (req: Request, res: Response) => {
-    try {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        const user = await UserService.validateUser(id);
-        res.json({ message: "Usuário validado com sucesso", user });
-    } catch (err: any) {
-        res.status(400).json({ error: err.message });
-    }
+export const validateUserController = async (req: Request, res: Response) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const user = await UserService.validateUser(id);
+
+    res.json({
+      message: "Usuário validado com sucesso",
+      user,
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
 };
+
 
 export const changeUserRole = async (req: Request, res: Response) => {
     try {
