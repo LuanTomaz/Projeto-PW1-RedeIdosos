@@ -11,21 +11,18 @@ const createUserSchema = z.object({
   tipo_cadastro: z.enum(["idoso", "voluntario", "ong"]),
 });
 
-
-// Controlalador para criação de usuário
+// Controlador para criação de usuário
 export const createUser = async (req: Request, res: Response) => {
   try {
-    // 1️⃣ Validação
     const validated = createUserSchema.parse(req.body);
 
-    // 2️⃣ Criação do usuário base (service faz o resto)
     const user = await UserService.createUser(validated);
 
-    // 3️⃣ Resposta
     res.status(201).json({
       message: "Usuário criado com sucesso. Complete seu cadastro.",
       user,
     });
+    
   } catch (err: any) {
     res.status(400).json({
       error: err.errors ?? err.message,
@@ -33,6 +30,7 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
+// Controlador para listar usuários
 export const getUsers = async (req: Request, res: Response) => {
     try {
         const { papel } = req.query;
@@ -64,38 +62,23 @@ export const validateUserController = async (req: Request, res: Response) => {
   }
 };
 
+// Rota para alterar papel do usuário, atualmente não usada
+// export const changeUserRole = async (req: Request, res: Response) => {
+//     try {
+//         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+//         const { papel } = req.body;
 
-export const changeUserRole = async (req: Request, res: Response) => {
-    try {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        const { papel } = req.body;
+//         if (!papel) {
+//             return res.status(400).json({ error: "papel é obrigatório" });
+//         }
 
-        if (!papel) {
-            return res.status(400).json({ error: "papel é obrigatório" });
-        }
+//         const user = await UserService.changeUserRole(id, papel);
+//         res.json({ message: "Papel do usuário alterado com sucesso", user });
+//     } catch (err: any) {
+//         res.status(400).json({ error: err.message });
+//     }
+// };
 
-        const user = await UserService.changeUserRole(id, papel);
-        res.json({ message: "Papel do usuário alterado com sucesso", user });
-    } catch (err: any) {
-        res.status(400).json({ error: err.message });
-    }
-};
-
-export const changeUserStatus = async (req: Request, res: Response) => {
-    try {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        const { ativo } = req.body;
-
-        if (typeof ativo !== "boolean") {
-            return res.status(400).json({ error: "ativo deve ser um booleano" });
-        }
-
-        const user = await UserService.changeUserStatus(id, ativo);
-        res.json({ message: "Status do usuário alterado com sucesso", user });
-    } catch (err: any) {
-        res.status(400).json({ error: err.message });
-    }
-};
 
 export const blockUser = async (req: Request, res: Response) => {
     try {

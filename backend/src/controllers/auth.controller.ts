@@ -81,7 +81,8 @@ export const login = async (req: Request, res: Response) => {
             {
                 id: user._id,
                 papel: user.papel,
-                tipo_cadastro: user.tipo_cadastro
+                tipo_cadastro: user.tipo_cadastro,
+                verificado: user.verificado
             },
             process.env.JWT_SECRET || "secret",
             { expiresIn: "1d" }

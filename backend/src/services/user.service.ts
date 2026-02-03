@@ -92,7 +92,7 @@ export const changeUserStatus = async (userId: string, novoStatus: boolean) => {
 export const blockUser = async (userId: string) => {
     return await User.findByIdAndUpdate(
         userId,
-        { ativo: false },
+        { verificado: false },
         { new: true }
     );
 };

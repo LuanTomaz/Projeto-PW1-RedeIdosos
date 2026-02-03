@@ -9,6 +9,7 @@ import {
 } from "../controllers/elder.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
+import { requireActiveUser } from "../middlewares/status";
 
 const router = Router();
 
@@ -17,6 +18,7 @@ router.get(
     "/me/profile",
     verifyToken,
     authorize('idoso'),
+    requireActiveUser,
     getMyProfile
 );
 
@@ -25,6 +27,7 @@ router.put(
     "/me/update",
     verifyToken,
     authorize('idoso'),
+    requireActiveUser,
     updateMyProfile
 );
 
@@ -33,6 +36,7 @@ router.put(
     "/me/location",
     verifyToken,
     authorize('idoso'),
+    requireActiveUser,
     updateMyLocation
 );
 

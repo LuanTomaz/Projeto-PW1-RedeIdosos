@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, getUsers, validateUserController, changeUserRole, changeUserStatus, blockUser, getVolunteers, getElders, getOngs, getAdmins, getGestoresPublicos, getUnverifiedVolunteers } from '../controllers/user.controller';
+import { createUser, getUsers, validateUserController, blockUser, getVolunteers, getElders, getOngs, getAdmins, getGestoresPublicos, getUnverifiedVolunteers } from '../controllers/user.controller';
 import { verifyToken } from '../middlewares/auth_middleware';
 import { authorize } from '../middlewares/authorization.middleware';
 
@@ -25,10 +25,13 @@ router.put(
     authorize('admin'),
     validateUserController
 );
+
 // router.put('/:id/verify', verifyToken, validateUser); // Alias para ONG verificar
-// router.put('/:id/role', verifyToken, changeUserRole);
-// router.put('/:id/status', verifyToken, changeUserStatus);
-// router.put('/:id/block', verifyToken, blockUser);
+router.put(
+    '/:id/block-user',
+    verifyToken,
+    blockUser
+);
 
 // Endpoints de Filtros por Papel
 router.get('/filtro/voluntarios', verifyToken, getVolunteers);
