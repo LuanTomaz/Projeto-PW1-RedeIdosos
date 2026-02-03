@@ -1,38 +1,49 @@
 import { Router } from "express";
-import { login, registerElder, registerVolunteer, registerOng, logout } from "../constrollers/auth.controller";
+import {
+    login,
+    createElderProfile,
+    createVolunteerProfile,
+    createOngProfile,
+        logout
+} from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
 
 const router = Router();
 
 // Autenticação
-router.post("/login", login);
-router.post("/logout", verifyToken, logout);
+router.post(
+    "/login", 
+    login
+);
+
+// Logout
+router.post(
+    "/logout", 
+    verifyToken, 
+    logout
+);
 
 // Registros (apenas para administrador)
-
 // Registrar um idoso
 router.post(
-    "/register-elder",
-    verifyToken, 
-    authorize('admin'), 
-    registerElder
+    "/profiles/elder",
+    verifyToken,
+    createElderProfile 
 );
 
 // Registrar um voluntário
 router.post(
-    "/register-volunteer", 
+    "/profiles/volunteer",
     verifyToken,
-    authorize('admin'),
-    registerVolunteer
+    createVolunteerProfile
 );
 
 // Registrar uma organização (ong)
 router.post(
-    "/register-ong", 
+    "/profiles/ong",
     verifyToken,
-    authorize('admin'), 
-    registerOng
+    createOngProfile
 );
 
 export default router;

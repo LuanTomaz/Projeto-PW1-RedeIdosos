@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import * as VolunteerService from "../services/volunteer.service";
 import { z } from "zod";
+import { User } from "../models/User";
+import { Volunteer } from "../models/Volunteer";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -29,6 +31,7 @@ export const createVolunteer = async (req: Request, res: Response) => {
     }
 };
 
+// Controlador para listar voluntários
 export const getVolunteers = async (req: Request, res: Response) => {
     try {
         const volunteers = await VolunteerService.getVolunteers();
@@ -38,6 +41,7 @@ export const getVolunteers = async (req: Request, res: Response) => {
     }
 };
 
+// Controlador para atualizar voluntário
 export const updateVolunteer = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -48,17 +52,36 @@ export const updateVolunteer = async (req: Request, res: Response) => {
     }
 };
 
+// Controlador para deletar voluntário
 export const deleteVolunteer = async (req: Request, res: Response) => {
-    try {
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        await VolunteerService.deleteVolunteer(id);
-        res.status(204).send();
-    } catch (err: any) {
-        res.status(400).json({ error: err.message });
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    // Busca o voluntário
+    const volunteer = await Volunteer.findById(id);
+
+    if (!volunteer) {
+      return res.status(404).json({ error: "Voluntário não encontrado" });
     }
+
+    // Remove o usuário associado
+    await User.findByIdAndDelete(volunteer.usuario_id);
+
+    // Remove o voluntário
+    await Volunteer.findByIdAndDelete(id);
+
+    return res.status(200).json({
+            success: true,
+            message: "Voluntário e usuário deletados (ou voluntário deletado, se houve problema no usuário).",
+            volunteerId: id,
+            userId: volunteer.usuario_id
+        });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
 };
 
-// Endpoints /me
+// Controlador para obter o perfil do voluntário autenticado
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
@@ -78,6 +101,7 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
     }
 };
 
+// Controlador para atualizar o perfil do voluntário autenticado
 export const updateMyProfile = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
@@ -93,6 +117,7 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
     }
 };
 
+// Controlador para atualizar a localização do voluntário autenticado
 export const updateMyLocation = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;

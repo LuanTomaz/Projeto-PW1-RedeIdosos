@@ -20,7 +20,7 @@ app.use(cors());
 app.use(json());
 
 // Servir arquivos estáticos
-app.use('/uploads', express.static('backend/'));
+app.use('/uploads', express.static('backend/src'));
 
 // Rota para autenticação de usuários
 app.use('/api/auth', authRoutes);

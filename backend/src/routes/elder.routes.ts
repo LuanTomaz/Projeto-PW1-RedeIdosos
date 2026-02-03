@@ -1,45 +1,70 @@
 import { Router } from "express";
-import { createElder, getElders, updateElder, deleteElder, getMyProfile, updateMyProfile, updateMyLocation } from "../constrollers/elder.controller";
+import {
+    getElders, 
+    updateElder, 
+    deleteElderController, 
+    getMyProfile, 
+    updateMyProfile, 
+    updateMyLocation
+} from "../controllers/elder.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
-import { authorize, authorizeRole } from "../middlewares/authorization.middleware";
+import { authorize } from "../middlewares/authorization.middleware";
+import { requireActiveUser } from "../middlewares/status";
 
 const router = Router();
 
+// Rotas para obter o perfil do idoso autenticado
 router.get(
-    "/me",
+    "/me/profile",
     verifyToken,
+    authorize('idoso'),
+    requireActiveUser,
     getMyProfile
 );
+
+// Rotas para atualizar o perfil e localização do idoso autenticado
 router.put(
-    "/me",
+    "/me/update",
     verifyToken,
+    authorize('idoso'),
+    requireActiveUser,
     updateMyProfile
 );
+
+// Rota para atualizar apenas a localização do idoso autenticado
 router.put(
     "/me/location",
     verifyToken,
+    authorize('idoso'),
+    requireActiveUser,
     updateMyLocation
 );
+
+// Rota para listar todos os idosos (acesso restrito a admins)
 router.get(
-    "/",
+    "/get-elders",
     verifyToken,
     authorize('admin'),
+    requireActiveUser,
     getElders
 );
-router.post(
-    "/",
-    verifyToken,
-    createElder
-);
+
+// Rota para atualizar um idoso pelo ID
 router.put(
-    "/:id",
+    "/:id/update-elder",
     verifyToken,
+    authorize('admin'),
+    requireActiveUser,
     updateElder
 );
+
+// Rota para deletar um idoso pelo ID
 router.delete(
-    "/:id",
+    "/:id/delete-elder",
     verifyToken,
-    deleteElder
+    authorize('admin'),
+    requireActiveUser,
+    deleteElderController
 );
 
 export default router;

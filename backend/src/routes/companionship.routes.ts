@@ -1,73 +1,91 @@
 import { Router } from "express";
-import { createCompanionship, getCompanionships, updateCompanionship, deleteCompanionship, acceptCompanionship, completeCompanionship, updateCompanionshipStatus, getCompanionshipsByUser } from "../constrollers/companionship.controller";
+import {
+    createCompanionship, 
+    getCompanionships, 
+    updateCompanionship, 
+    deleteCompanionship, 
+    acceptCompanionship, 
+    completeCompanionship, 
+    updateCompanionshipStatus, 
+    getCompanionshipsByUser
+} from "../controllers/companionship.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
-import {upload} from "../middlewares/upload";
+import { requireActiveUser } from "../middlewares/status";
+import { upload } from "../middlewares/upload";
 
 const router = Router();
 
 // Rota para listar todas as companhias.
 router.get(
-    "/list-companionships", 
-    verifyToken, 
-    authorize('admin'),
+    "/list-companionships",
+    verifyToken,
+    authorize('admin', 'voluntario', 'idoso'),
+    requireActiveUser,
     getCompanionships
 );
 
 // Rota para listar companhias do usuário autenticado.
 router.get(
-    "/my-companionships", 
+    "/my-companionships",
     verifyToken,
-    authorize('voluntario', 'idoso'), 
+    authorize('voluntario', 'idoso'),
+    requireActiveUser,
     getCompanionshipsByUser
 );
 
 // Rota para criar uma nova companhia.
 router.post(
-    "/create-companionship", 
+    "/create-companionship",
     verifyToken,
-    authorize('admin'), 
+    authorize('admin'),
+    requireActiveUser,
     createCompanionship
 );
 
 // Rota para aceitar uma companhia.
 router.patch(
-    "/:id/accept", 
-    verifyToken, 
+    "/:id/accept",
+    verifyToken,
     authorize('voluntario'),
+    requireActiveUser,
     acceptCompanionship
 );
 
 // Rota para completar uma companhia.
 router.put(
-    "/:id/update", 
-    verifyToken, 
+    "/:id/update",
+    verifyToken,
     authorize('admin', 'voluntario'),
+    requireActiveUser,
     updateCompanionship
 );
 
 // Rota para atualizar o status de uma companhia.
 router.put(
-    "/:id/status", 
-    verifyToken, 
+    "/:id/status",
+    verifyToken,
     authorize('admin', 'voluntario'),
+    requireActiveUser,
     updateCompanionshipStatus
 );
 
 // Rota para completar uma companhia com upload de foto.
 router.put(
-    "/:id/complete", 
-    verifyToken, 
+    "/:id/complete",
+    verifyToken,
     authorize('voluntario'),
     upload.single('foto_comprovante'),
+    requireActiveUser,
     completeCompanionship
 );
 
 // Rota para deletar uma companhia.
 router.delete(
-    "/:id/delete", 
-    verifyToken, 
+    "/:id/delete",
+    verifyToken,
     authorize('admin'),
+    requireActiveUser,
     deleteCompanionship
 );
 

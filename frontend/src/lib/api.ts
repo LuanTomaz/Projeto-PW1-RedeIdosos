@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+const API_BASE_URL = 'https://projeto-pw1-redeidosos.onrender.com';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -40,7 +40,7 @@ export const authAPI = {
   login: (email: string, senha: string) => 
     api.post('/login', { email, senha }),
   register: (data: RegisterData) => 
-    api.post('/register', data),
+    api.post('/api/users/create-user', data),
   logout: () => 
     api.post('/logout'),
 };

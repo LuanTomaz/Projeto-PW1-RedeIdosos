@@ -12,26 +12,80 @@ import {
     generateEldersReport,
     getReportsByType,
     getReportsByUser
-} from "../constrollers/report.controller";
+} from "../controllers/report.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
+import { authorize } from "../middlewares/authorization.middleware";
+import { requireActiveUser } from "../middlewares/status";
 
 const router = Router();
 
-router.get("/", verifyToken, getReports);
-router.get("/me", verifyToken, getReportsByUser);
-router.post("/", verifyToken, createReport);
-router.get("/:id", verifyToken, getReportById);
-router.put("/:id", verifyToken, updateReport);
-router.delete("/:id", verifyToken, deleteReport);
+// Rota para obter todos os relatórios
+router.get(
+    "/all-reports", 
+    verifyToken, 
+    authorize('admin'),
+    requireActiveUser,
+    getReports
+);
 
-// Relatórios Dinâmicos
-router.get("/generate/summary", verifyToken, generateSummaryReport);
-router.get("/generate/statistics", verifyToken, generateStatisticsReport);
-router.get("/generate/impact", generateImpactReport); // Público
-router.get("/generate/locations", verifyToken, generateLocationsReport);
-router.get("/generate/elders", verifyToken, generateEldersReport);
+// Rota para obter relatórios do usuário autenticado
+router.get(
+    "/my-reports", 
+    verifyToken, 
+    requireActiveUser,
+    getReportsByUser
+);
+
+// Rota para criar um novo relatório
+router.post(
+    "/create-report", 
+    verifyToken, 
+    requireActiveUser,
+    createReport
+);
+
+// Rota para obter um relatório por ID
+router.get(
+    "/:id/report", 
+    verifyToken,
+    authorize('admin'), 
+    requireActiveUser,
+    getReportById
+);
+
+// Rota para atualizar um relatório por ID
+router.put(
+    "/:id/update-report", 
+    verifyToken,
+    authorize('admin'), 
+    requireActiveUser,
+    updateReport
+);
+
+// Rota para deletar um relatório por ID
+router.delete(
+    "/:id/delete-report", 
+    verifyToken, 
+    authorize('admin'),
+    requireActiveUser,
+    deleteReport
+);
 
 // Filtros
-router.get("/type/:tipo", verifyToken, getReportsByType);
+router.get(
+    "/type/:tipo", 
+    verifyToken, 
+    requireActiveUser,
+    getReportsByType
+);
+
+// Relatórios Dinâmicos, por enquanto desativados
+// router.get("/generate/summary", verifyToken, generateSummaryReport);
+// router.get("/generate/statistics", verifyToken, generateStatisticsReport);
+// router.get("/generate/impact", generateImpactReport); // Público
+// router.get("/generate/locations", verifyToken, generateLocationsReport);
+// router.get("/generate/elders", verifyToken, generateEldersReport);
+
+
 
 export default router;
