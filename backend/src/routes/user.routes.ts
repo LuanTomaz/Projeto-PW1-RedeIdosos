@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, getUsers, validateUser, changeUserRole, changeUserStatus, blockUser, getVolunteers, getElders, getOngs, getAdmins, getGestoresPublicos, getUnverifiedVolunteers } from '../constrollers/user.controller';
+import { createUser, getUsers, validateUser, changeUserRole, changeUserStatus, blockUser, getVolunteers, getElders, getOngs, getAdmins, getGestoresPublicos, getUnverifiedVolunteers } from '../controllers/user.controller';
 import { verifyToken } from '../middlewares/auth_middleware';
 
 const router = Router();

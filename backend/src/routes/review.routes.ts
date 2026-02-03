@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createReview, getReviews, updateReview, deleteReview } from "../constrollers/review.controller";
+import { createReview, getReviews, updateReview, deleteReview } from "../controllers/review.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 
 const router = Router();

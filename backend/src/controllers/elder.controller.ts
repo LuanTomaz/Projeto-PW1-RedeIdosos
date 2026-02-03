@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import * as ElderService from "../services/elder.service";
+import * as UserService from "../services/user.service";
 import { z } from "zod";
+import mongoose from "mongoose";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -57,18 +59,44 @@ export const updateElder = async (req: Request, res: Response) => {
     }
 };
 
-// Controlador para deletar um idoso pelo ID
-export const deleteElder = async (req: Request, res: Response) => {
+// Controlador para deletar um idoso e o usuário relacionado pelo ID do idoso
+export const deleteElderController = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "ID inválido" });
+        }
+
+        const elder = await ElderService.getElderById(id);
+        if (!elder) {
+            return res.status(404).json({ error: "Idoso não encontrado" });
+        }
+
+        const userId = elder.usuario_id._id?.toString();
+
+        // Deletar o idoso
         await ElderService.deleteElder(id);
+
+        // Deletar o usuário relacionado
+        if (userId) {
+            try {
+                await UserService.deleteUser(userId);
+            } catch (err) {
+                console.error("Erro ao deletar o usuário:", err);
+            }
+        }
+
         return res.status(200).json({
             success: true,
-            message: "Idoso deletado com sucesso.",
-            id
+            message: "Idoso e usuário deletados (ou idoso deletado, se houve problema no usuário).",
+            elderId: id,
+            userId
         });
+
     } catch (err: any) {
-        res.status(400).json({ error: err.message });
+        console.error(err);
+        res.status(500).json({ error: "Erro interno do servidor" });
     }
 };
 

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { login, registerElder, registerVolunteer, registerOng, logout } from "../constrollers/auth.controller";
+import { login, registerElder, registerVolunteer, registerOng, logout } from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
 

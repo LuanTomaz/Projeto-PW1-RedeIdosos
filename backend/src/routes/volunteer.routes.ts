@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createVolunteer, getVolunteers, updateVolunteer, deleteVolunteer, getMyProfile, updateMyProfile, updateMyLocation } from "../constrollers/volunteer.controller";
+import { createVolunteer, getVolunteers, updateVolunteer, deleteVolunteer, getMyProfile, updateMyProfile, updateMyLocation } from "../controllers/volunteer.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 
 const router = Router();

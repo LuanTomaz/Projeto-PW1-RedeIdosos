@@ -8,7 +8,7 @@ import {
     downloadFile, 
     deleteFile,
     getFilesByUser 
-} from "../constrollers/file.controller";
+} from "../controllers/file.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 
 const router = Router();

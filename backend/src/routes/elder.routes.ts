@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getElders, updateElder, deleteElder, getMyProfile, updateMyProfile, updateMyLocation } from "../constrollers/elder.controller";
+import { getElders, updateElder, deleteElderController, getMyProfile, updateMyProfile, updateMyLocation } from "../controllers/elder.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
 
@@ -53,10 +53,10 @@ router.put(
 
 // Rota para deletar um idoso pelo ID
 router.delete(
-    "/:id/delete",
+    "/:id/delete-elder",
     verifyToken,
     authorize('admin'),
-    deleteElder
+    deleteElderController
 );
 
 export default router;

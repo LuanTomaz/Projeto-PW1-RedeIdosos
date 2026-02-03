@@ -12,7 +12,7 @@ import {
     generateEldersReport,
     getReportsByType,
     getReportsByUser
-} from "../constrollers/report.controller";
+} from "../controllers/report.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 
 const router = Router();

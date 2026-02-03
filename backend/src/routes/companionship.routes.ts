@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createCompanionship, getCompanionships, updateCompanionship, deleteCompanionship, acceptCompanionship, completeCompanionship, updateCompanionshipStatus, getCompanionshipsByUser } from "../constrollers/companionship.controller";
+import { createCompanionship, getCompanionships, updateCompanionship, deleteCompanionship, acceptCompanionship, completeCompanionship, updateCompanionshipStatus, getCompanionshipsByUser } from "../controllers/companionship.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
 import {upload} from "../middlewares/upload";
