@@ -1,68 +1,280 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+/* Rede de Companhia para Idosos - Design System
+   A warm, accessible, and trustworthy design for elderly care platform
+*/
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    /* Core Brand Colors - Warm Teal for trust and care */
+    --background: 180 20% 98%;
+    --foreground: 200 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 25% 15%;
+
+    /* Primary - Warm Teal (Trust, Care, Health) */
+    --primary: 174 55% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Soft Coral (Warmth, Energy) */
+    --secondary: 15 75% 92%;
+    --secondary-foreground: 15 60% 35%;
+
+    /* Muted - Soft Gray with warm undertone */
+    --muted: 180 15% 94%;
+    --muted-foreground: 200 15% 45%;
+
+    /* Accent - Warm Orange (Call to action, Energy) */
+    --accent: 24 85% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Semantic Colors */
+    --success: 152 60% 42%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 90% 55%;
+    --warning-foreground: 38 90% 20%;
+    
+    --info: 205 80% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* UI Elements */
+    --border: 180 15% 88%;
+    --input: 180 15% 88%;
+    --ring: 174 55% 40%;
+
+    --radius: 0.75rem;
+
+    /* Role-based Colors */
+    --role-admin: 280 60% 50%;
+    --role-gestor: 205 80% 50%;
+    --role-ong: 152 60% 42%;
+    --role-voluntario: 24 85% 55%;
+    --role-idoso: 174 55% 40%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(174 55% 40%), hsl(180 45% 50%));
+    --gradient-warm: linear-gradient(135deg, hsl(24 85% 55%), hsl(15 75% 60%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(180 20% 98%));
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+    --shadow-glow: 0 0 20px -5px hsl(174 55% 40% / 0.3);
+
+    /* Sidebar */
+    --sidebar-background: 180 20% 98%;
+    --sidebar-foreground: 200 25% 15%;
+    --sidebar-primary: 174 55% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 15 75% 92%;
+    --sidebar-accent-foreground: 200 25% 15%;
+    --sidebar-border: 180 15% 88%;
+    --sidebar-ring: 174 55% 40%;
   }
-  a:hover {
-    color: #747bff;
+
+  .dark {
+    --background: 200 25% 10%;
+    --foreground: 180 15% 95%;
+
+    --card: 200 25% 14%;
+    --card-foreground: 180 15% 95%;
+
+    --popover: 200 25% 14%;
+    --popover-foreground: 180 15% 95%;
+
+    --primary: 174 55% 50%;
+    --primary-foreground: 200 25% 10%;
+
+    --secondary: 15 40% 25%;
+    --secondary-foreground: 15 75% 80%;
+
+    --muted: 200 20% 20%;
+    --muted-foreground: 180 15% 65%;
+
+    --accent: 24 75% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 152 50% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 80% 50%;
+    --warning-foreground: 38 90% 10%;
+
+    --info: 205 70% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 20% 22%;
+    --input: 200 20% 22%;
+    --ring: 174 55% 50%;
+
+    --sidebar-background: 200 25% 12%;
+    --sidebar-foreground: 180 15% 95%;
+    --sidebar-primary: 174 55% 50%;
+    --sidebar-primary-foreground: 200 25% 10%;
+    --sidebar-accent: 200 20% 18%;
+    --sidebar-accent-foreground: 180 15% 95%;
+    --sidebar-border: 200 20% 22%;
+    --sidebar-ring: 174 55% 50%;
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Nunito', system-ui, sans-serif;
+    @apply font-bold tracking-tight;
+  }
+
+  /* Accessibility - Focus visible for keyboard navigation */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* Hero section gradient background */
+  .hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  /* Warm accent gradient */
+  .accent-gradient {
+    background: var(--gradient-warm);
+  }
+
+  /* Card with subtle gradient */
+  .card-gradient {
+    background: var(--gradient-card);
+  }
+
+  /* Glow shadow effect */
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Role badge styles */
+  .role-admin {
+    @apply bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300;
+  }
+
+  .role-gestor {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300;
+  }
+
+  .role-ong {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300;
+  }
+
+  .role-voluntario {
+    @apply bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300;
+  }
+
+  .role-idoso {
+    @apply bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300;
+  }
+
+  /* Status badge styles */
+  .status-pendente {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300;
+  }
+
+  .status-aceito {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300;
+  }
+
+  .status-concluido {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300;
+  }
+
+  .status-cancelado {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300;
+  }
+
+  /* Leaflet map overrides */
+  .leaflet-container {
+    @apply rounded-lg;
+    z-index: 0;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { 
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md dark:bg-card/80;
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-hero);
   }
 }
