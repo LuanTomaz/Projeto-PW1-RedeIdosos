@@ -1,5 +1,12 @@
 import { Router } from "express";
-import { getElders, updateElder, deleteElderController, getMyProfile, updateMyProfile, updateMyLocation } from "../controllers/elder.controller";
+import {
+    getElders, 
+    updateElder, 
+    deleteElderController, 
+    getMyProfile, 
+    updateMyProfile, 
+    updateMyLocation
+} from "../controllers/elder.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
 

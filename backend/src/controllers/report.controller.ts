@@ -13,6 +13,7 @@ const reportSchema = z.object({
     data_fim: z.string().optional()
 });
 
+// Controlador para criar um novo relatório
 export const createReport = async (req: AuthRequest, res: Response) => {
     try {
         const validated = reportSchema.parse(req.body);
@@ -75,7 +76,11 @@ export const deleteReport = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         await ReportService.deleteReport(id);
-        res.status(204).send();
+        return res.status(200).json({
+            success: true,
+            message: "Relatório deletado com sucesso.",
+            reportId: id,
+        });
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }

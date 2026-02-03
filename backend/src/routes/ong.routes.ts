@@ -1,5 +1,13 @@
 import { Router } from "express";
-import { createOng, getOngs, updateOng, deleteOng, getMyProfile, updateMyProfile, updateMyLocation } from "../controllers/ong.controller";
+import {
+    createOng,
+    getOngs,
+    updateOng,
+    deleteOng,
+    getMyProfile,
+    updateMyProfile,
+    updateMyLocation
+} from "../controllers/ong.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
 
@@ -7,15 +15,15 @@ const router = Router();
 
 // Rota para obter o perfil da ONG autenticada
 router.get(
-    "/profile", 
-    verifyToken, 
+    "/profile",
+    verifyToken,
     authorize('ong'),
     getMyProfile
 );
 
 // Rota para atualizar o perfil da ONG autenticada
 router.put(
-    "/update-profile", 
+    "/update-profile",
     verifyToken,
     authorize('ong'),
     updateMyProfile
@@ -23,8 +31,8 @@ router.put(
 
 //  Rota para atualizar a localização da ONG autenticada
 router.put(
-    "/update-location", 
-    verifyToken, 
+    "/update-location",
+    verifyToken,
     authorize('ong'),
     updateMyLocation
 );
@@ -42,16 +50,16 @@ router.get(
 
 // Rota para atualizar uma ONG pelo ID
 router.put(
-    "/:id/update-ong", 
-    verifyToken, 
+    "/:id/update-ong",
+    verifyToken,
     authorize('admin'),
     updateOng
 );
 
 // Rota para deletar uma ONG pelo ID
 router.delete(
-    "/:id/delete-ong", 
-    verifyToken, 
+    "/:id/delete-ong",
+    verifyToken,
     authorize('admin'),
     deleteOng
 );
