@@ -1,12 +1,12 @@
-import { Router } from 'express';
-import { createUser, getUsers, validateUserController, blockUser, getVolunteers, getElders, getOngs, getAdmins, getUnverifiedVolunteers, promoteToAdmin, devActivateUser } from '../controllers/user.controller';
+﻿import { Router } from 'express';
+import { createUser, getUsers, validateUserController, blockUser, updateUserStatus, updateUserController, deleteUserController, getVolunteers, getElders, getOngs, getAdmins, getUnverifiedVolunteers, promoteToAdmin, devActivateUser } from '../controllers/user.controller';
 import { verifyToken } from '../middlewares/auth_middleware';
 import { authorize } from '../middlewares/authorization.middleware';
 import { requireActiveUser } from '../middlewares/status';
 
 const router = Router();
 
-// Apenas usuários autenticados podem listar usuários
+// Apenas usuÃ¡rios autenticados podem listar usuÃ¡rios
 router.get(
     '/list-users',
     verifyToken,
@@ -14,13 +14,13 @@ router.get(
     getUsers
 );
 
-// Criação de usuário aberta
+// CriaÃ§Ã£o de usuÃ¡rio aberta
 router.post(
     '/create-user',
     createUser
 );
 
-// Endpoints de validação/status
+// Endpoints de validaÃ§Ã£o/status
 router.put(
     '/:id/validate',
     verifyToken,
@@ -29,7 +29,7 @@ router.put(
     validateUserController
 );
 
-// Endpoint para promover usuário a admin
+// Endpoint para promover usuÃ¡rio a admin
 router.put(
     "/:id/promote-admin",
     verifyToken,
@@ -38,13 +38,39 @@ router.put(
     promoteToAdmin
 );
 
-// Endpoint para bloquear usuário
+// Endpoint para bloquear usuÃ¡rio
 router.put(
     '/:id/block-user',
     verifyToken,
     authorize('admin'),
     requireActiveUser,
     blockUser
+);
+// Endpoint para atualizar status ativo/inativo
+router.put(
+    '/:id/status',
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    updateUserStatus
+);
+
+// Endpoint para atualizar dados do usuÃ¡rio
+router.put(
+    '/:id/update',
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    updateUserController
+);
+
+// Endpoint para remover usuÃ¡rio
+router.delete(
+    '/:id/delete',
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    deleteUserController
 );
 
 // Endpoints de Filtros por Papel
@@ -85,3 +111,4 @@ router.post(
 );
 
 export default router;
+
