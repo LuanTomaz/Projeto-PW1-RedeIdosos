@@ -168,11 +168,11 @@ export default function MapPage() {
                               <div className="min-w-[150px] p-2">
                                 <div className="mb-2 flex items-center gap-2">
                                   <HandHeart className="h-4 w-4 text-orange-600" />
-                                  <span className="font-semibold">VoluntÃ¡rio</span>
+                                  <span className="font-semibold">Voluntário</span>
                                 </div>
-                                <p className="font-medium">{volunteer.usuario?.nome || 'VoluntÃ¡rio'}</p>
+                                <p className="font-medium">{volunteer.usuario?.nome || 'Voluntário'}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {volunteer.disponibilidade || 'NÃ£o informado'}
+                                  {volunteer.disponibilidade || 'Não informado'}
                                 </p>
                               </div>
                             </Popup>
@@ -196,7 +196,7 @@ export default function MapPage() {
                                 </div>
                                 <p className="font-medium">{comp.atividade}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  Idoso: {comp.idoso?.usuario?.nome || 'NÃ£o informado'}
+                                  Idoso: {comp.idoso?.usuario?.nome || 'Não informado'}
                                 </p>
                                 <Badge variant="secondary" className="mt-2 text-xs">
                                   {comp.status}
@@ -230,3 +230,5 @@ export default function MapPage() {
     </div>
   );
 }
+
+

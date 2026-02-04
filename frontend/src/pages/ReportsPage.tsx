@@ -53,13 +53,13 @@ export default function ReportsPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      toast({ title: 'RelatÃ³rio criado com sucesso' });
+      toast({ title: 'Relatório criado com sucesso' });
       setIsCreateOpen(false);
       setForm({ tipo: '', descricao: '', data_inicio: '', data_fim: '' });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Erro ao criar relatÃ³rio',
+        title: 'Erro ao criar relatório',
         description: getErrorMessage(error, 'Verifique os dados e tente novamente'),
         variant: 'destructive',
       });
@@ -79,7 +79,7 @@ export default function ReportsPage() {
       </div>
       {(report.data_inicio || report.data_fim) && (
         <p className="mt-2 text-xs text-muted-foreground">
-          PerÃ­odo: {report.data_inicio ? new Date(report.data_inicio).toLocaleDateString('pt-BR') : 'N/A'} â€“{' '}
+          Período: {report.data_inicio ? new Date(report.data_inicio).toLocaleDateString('pt-BR') : 'N/A'} –{' '}
           {report.data_fim ? new Date(report.data_fim).toLocaleDateString('pt-BR') : 'N/A'}
         </p>
       )}
@@ -97,12 +97,12 @@ export default function ReportsPage() {
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">RelatÃ³rios</h1>
-          <p className="mt-1 text-muted-foreground">Crie e consulte relatÃ³rios da plataforma</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">Relatórios</h1>
+          <p className="mt-1 text-muted-foreground">Crie e consulte relatórios da plataforma</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Novo relatÃ³rio
+          Novo relatório
         </Button>
       </motion.div>
 
@@ -114,12 +114,12 @@ export default function ReportsPage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="font-display">Meus relatÃ³rios</CardTitle>
+            <CardTitle className="font-display">Meus relatórios</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoadingMine && <p className="text-sm text-muted-foreground">Carregando...</p>}
             {!isLoadingMine && combinedMine.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum relatÃ³rio encontrado.</p>
+              <p className="text-sm text-muted-foreground">Nenhum relatório encontrado.</p>
             )}
             {!isLoadingMine && combinedMine.map(renderReportItem)}
           </CardContent>
@@ -128,12 +128,12 @@ export default function ReportsPage() {
         {(user?.papel === 'admin') && (
           <Card>
             <CardHeader>
-              <CardTitle className="font-display">RelatÃ³rios da plataforma</CardTitle>
+              <CardTitle className="font-display">Relatórios da plataforma</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {isLoadingAll && <p className="text-sm text-muted-foreground">Carregando...</p>}
               {!isLoadingAll && combinedAll.length === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhum relatÃ³rio encontrado.</p>
+                <p className="text-sm text-muted-foreground">Nenhum relatório encontrado.</p>
               )}
               {!isLoadingAll && combinedAll.map(renderReportItem)}
             </CardContent>
@@ -144,7 +144,7 @@ export default function ReportsPage() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Criar relatÃ³rio</DialogTitle>
+            <DialogTitle>Criar relatório</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -152,11 +152,11 @@ export default function ReportsPage() {
               <Input
                 value={form.tipo}
                 onChange={(e) => setForm((prev) => ({ ...prev, tipo: e.target.value }))}
-                placeholder="Ex: impacto, estatÃ­sticas"
+                placeholder="Ex: impacto, estatísticas"
               />
             </div>
             <div className="space-y-2">
-              <Label>DescriÃ§Ã£o (opcional)</Label>
+              <Label>Descrição (opcional)</Label>
               <Textarea
                 value={form.descricao}
                 onChange={(e) => setForm((prev) => ({ ...prev, descricao: e.target.value }))}
@@ -165,7 +165,7 @@ export default function ReportsPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Data inÃ­cio</Label>
+                <Label>Data início</Label>
                 <Input
                   type="date"
                   value={form.data_inicio}
@@ -187,7 +187,7 @@ export default function ReportsPage() {
               Cancelar
             </Button>
             <Button onClick={() => createReportMutation.mutate()} disabled={createReportMutation.isPending}>
-              {createReportMutation.isPending ? 'Criando...' : 'Criar relatÃ³rio'}
+              {createReportMutation.isPending ? 'Criando...' : 'Criar relatório'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -195,4 +195,6 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+
 

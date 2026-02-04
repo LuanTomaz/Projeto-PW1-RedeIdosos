@@ -59,7 +59,7 @@ export default function Onboarding() {
     }
     return {
       title: 'Complete o cadastro da ONG',
-      description: 'Informe os dados da organizaÃ§Ã£o.',
+      description: 'Informe os dados da organização.',
       icon: Building2,
     };
   }, [user]);
@@ -281,3 +281,5 @@ export default function Onboarding() {
     </div>
   );
 }
+
+

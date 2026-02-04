@@ -51,7 +51,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   pendente: { label: 'Pendente', color: 'status-pendente', icon: Clock },
   aceito: { label: 'Aceito', color: 'status-aceito', icon: CheckCircle2 },
   em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700', icon: Clock },
-  concluido: { label: 'ConcluÃ­do', color: 'status-concluido', icon: CheckCircle2 },
+  concluido: { label: 'Concluído', color: 'status-concluido', icon: CheckCircle2 },
   cancelado: { label: 'Cancelado', color: 'status-cancelado', icon: XCircle },
 };
 
@@ -96,12 +96,12 @@ export default function CompanionshipsPage() {
   const acceptMutation = useMutation({
     mutationFn: (id: string) => companionshipsAPI.accept(id),
     onSuccess: () => {
-      toast({ title: 'SolicitaÃ§Ã£o aceita com sucesso' });
+      toast({ title: 'Solicitação aceita com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['companionships'] });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'NÃ£o foi possÃ­vel aceitar',
+        title: 'Não foi possível aceitar',
         description: getErrorMessage(error, 'Tente novamente'),
         variant: 'destructive',
       });
@@ -117,7 +117,7 @@ export default function CompanionshipsPage() {
     },
     onError: (error: unknown) => {
       toast({
-        title: 'NÃ£o foi possÃ­vel atualizar o status',
+        title: 'Não foi possível atualizar o status',
         description: getErrorMessage(error, 'Tente novamente'),
         variant: 'destructive',
       });
@@ -129,7 +129,7 @@ export default function CompanionshipsPage() {
       const latitude = Number(createForm.latitude);
       const longitude = Number(createForm.longitude);
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-        return Promise.reject(new Error('Latitude e longitude invÃ¡lidas'));
+        return Promise.reject(new Error('Latitude e longitude inválidas'));
       }
 
       if (user?.papel !== 'idoso' && !createForm.idoso_id.trim()) {
@@ -148,7 +148,7 @@ export default function CompanionshipsPage() {
       });
     },
     onSuccess: () => {
-      toast({ title: 'SolicitaÃ§Ã£o criada com sucesso' });
+      toast({ title: 'Solicitação criada com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['companionships'] });
       setIsCreateDialogOpen(false);
       setCreateForm({
@@ -164,7 +164,7 @@ export default function CompanionshipsPage() {
     },
     onError: (error: unknown) => {
       toast({
-        title: 'NÃ£o foi possÃ­vel criar',
+        title: 'Não foi possível criar',
         description: getErrorMessage(error, 'Verifique os dados e tente novamente'),
         variant: 'destructive',
       });
@@ -204,12 +204,12 @@ export default function CompanionshipsPage() {
       >
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Companhias</h1>
-          <p className="mt-1 text-muted-foreground">Gerencie as solicitaÃ§Ãµes de companhia</p>
+          <p className="mt-1 text-muted-foreground">Gerencie as solicitações de companhia</p>
         </div>
         {(user?.papel === 'idoso' || user?.papel === 'ong' || user?.papel === 'admin') && (
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Nova SolicitaÃ§Ã£o
+            Nova Solicitação
           </Button>
         )}
       </motion.div>
@@ -268,7 +268,7 @@ export default function CompanionshipsPage() {
                   <SelectItem value="pendente">Pendente</SelectItem>
                   <SelectItem value="aceito">Aceito</SelectItem>
                   <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                  <SelectItem value="concluido">ConcluÃ­do</SelectItem>
+                  <SelectItem value="concluido">Concluído</SelectItem>
                   <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
@@ -283,7 +283,7 @@ export default function CompanionshipsPage() {
         transition={{ delay: 0.3 }}
         className="space-y-4"
       >
-        {isLoading && <p className="py-10 text-center text-muted-foreground">Carregando solicitaÃ§Ãµes...</p>}
+        {isLoading && <p className="py-10 text-center text-muted-foreground">Carregando solicitações...</p>}
 
         {!isLoading &&
           filteredCompanionships.map((comp, index) => {
@@ -353,7 +353,7 @@ export default function CompanionshipsPage() {
                                   .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-xs text-muted-foreground">VoluntÃ¡rio</span>
+                            <span className="text-xs text-muted-foreground">Voluntário</span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center gap-1">
@@ -396,7 +396,7 @@ export default function CompanionshipsPage() {
                             {(comp.status === 'aceito' || comp.status === 'em_andamento') && (
                               <DropdownMenuItem onClick={() => handleComplete(comp)}>
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Marcar como ConcluÃ­do
+                                Marcar como Concluído
                               </DropdownMenuItem>
                             )}
                             {comp.status !== 'concluido' && comp.status !== 'cancelado' && (
@@ -420,7 +420,7 @@ export default function CompanionshipsPage() {
 
         {!isLoading && filteredCompanionships.length === 0 && (
           <div className="py-12 text-center">
-            <p className="text-muted-foreground">Nenhuma solicitaÃ§Ã£o encontrada</p>
+            <p className="text-muted-foreground">Nenhuma solicitação encontrada</p>
           </div>
         )}
       </motion.div>
@@ -442,7 +442,7 @@ export default function CompanionshipsPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">HorÃ¡rio</p>
+                  <p className="text-sm text-muted-foreground">Horário</p>
                   <p className="font-medium">{selectedCompanionship.hora}</p>
                 </div>
               </div>
@@ -480,7 +480,7 @@ export default function CompanionshipsPage() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Nova solicitaÃ§Ã£o</DialogTitle>
+            <DialogTitle>Nova solicitação</DialogTitle>
             <DialogDescription>Preencha os dados da atividade de companhia.</DialogDescription>
           </DialogHeader>
 
@@ -506,7 +506,7 @@ export default function CompanionshipsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>DescriÃ§Ã£o</Label>
+              <Label>Descrição</Label>
               <Textarea
                 value={createForm.descricao}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, descricao: e.target.value }))}
@@ -524,7 +524,7 @@ export default function CompanionshipsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>HorÃ¡rio</Label>
+                <Label>Horário</Label>
                 <Input
                   type="time"
                   value={createForm.hora}
@@ -534,11 +534,11 @@ export default function CompanionshipsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Local (descriÃ§Ã£o)</Label>
+              <Label>Local (descrição)</Label>
               <Input
                 value={createForm.local_descricao}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, local_descricao: e.target.value }))}
-                placeholder="Ex: PraÃ§a central"
+                placeholder="Ex: Praça central"
               />
             </div>
 
@@ -567,7 +567,7 @@ export default function CompanionshipsPage() {
               Cancelar
             </Button>
             <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Enviando...' : 'Criar solicitaÃ§Ã£o'}
+              {createMutation.isPending ? 'Enviando...' : 'Criar solicitação'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -575,3 +575,5 @@ export default function CompanionshipsPage() {
     </div>
   );
 }
+
+

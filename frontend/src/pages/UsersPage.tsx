@@ -47,7 +47,7 @@ const roleLabels: Record<string, string> = {
   pending: 'Pendente',
   admin: 'Administrador',
   ong: 'ONG',
-  voluntario: 'VoluntÃ¡rio',
+  voluntario: 'Voluntário',
   idoso: 'Idoso',
 };
 
@@ -130,7 +130,7 @@ export default function UsersPage() {
     mutationFn: (id: string) => usersAPI.updateRole(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'UsuÃ¡rio promovido a administrador' });
+      toast({ title: 'Usuário promovido a administrador' });
     },
     onError: (error: unknown) => {
       toast({
@@ -209,12 +209,12 @@ export default function UsersPage() {
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">UsuÃ¡rios</h1>
-          <p className="mt-1 text-muted-foreground">Gerencie todos os usuÃ¡rios da plataforma</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">Usuários</h1>
+          <p className="mt-1 text-muted-foreground">Gerencie todos os usuários da plataforma</p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Novo UsuÃ¡rio
+          Novo Usuário
         </Button>
       </motion.div>
 
@@ -240,12 +240,12 @@ export default function UsersPage() {
                   <SelectValue placeholder="Filtrar por papel" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os papÃ©is</SelectItem>
+                  <SelectItem value="all">Todos os papéis</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
                   
                   <SelectItem value="ong">ONG</SelectItem>
-                  <SelectItem value="voluntario">VoluntÃ¡rio</SelectItem>
+                  <SelectItem value="voluntario">Voluntário</SelectItem>
                   <SelectItem value="idoso">Idoso</SelectItem>
                 </SelectContent>
               </Select>
@@ -271,12 +271,12 @@ export default function UsersPage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="font-display">Lista de UsuÃ¡rios</CardTitle>
-            <CardDescription>{filteredUsers.length} usuÃ¡rio(s) encontrado(s)</CardDescription>
+            <CardTitle className="font-display">Lista de Usuários</CardTitle>
+            <CardDescription>{filteredUsers.length} usuário(s) encontrado(s)</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="py-10 text-center text-muted-foreground">Carregando usuÃ¡rios...</p>
+              <p className="py-10 text-center text-muted-foreground">Carregando usuários...</p>
             ) : (
               <div className="space-y-3">
                 {filteredUsers.map((user, index) => (
@@ -453,7 +453,7 @@ export default function UsersPage() {
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="voluntario">VoluntÃ¡rio</SelectItem>
+                  <SelectItem value="voluntario">Voluntário</SelectItem>
                   <SelectItem value="idoso">Idoso</SelectItem>
                   <SelectItem value="ong">ONG</SelectItem>
                 </SelectContent>
@@ -465,7 +465,7 @@ export default function UsersPage() {
               Cancelar
             </Button>
             <Button onClick={() => createUserMutation.mutate()} disabled={createUserMutation.isPending}>
-              {createUserMutation.isPending ? 'Criando...' : 'Criar usuÃ¡rio'}
+              {createUserMutation.isPending ? 'Criando...' : 'Criar usuário'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -473,4 +473,6 @@ export default function UsersPage() {
     </div>
   );
 }
+
+
 

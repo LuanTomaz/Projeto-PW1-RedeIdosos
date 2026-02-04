@@ -104,7 +104,7 @@ export default function ReviewsPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
-      toast({ title: 'AvaliaÃ§Ã£o enviada com sucesso!' });
+      toast({ title: 'Avaliação enviada com sucesso!' });
       setIsNewReviewOpen(false);
       setNewRating(0);
       setNewComment('');
@@ -113,7 +113,7 @@ export default function ReviewsPage() {
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Erro ao enviar avaliaÃ§Ã£o',
+        title: 'Erro ao enviar avaliação',
         description: getErrorMessage(error, 'Confira os dados e tente novamente'),
         variant: 'destructive',
       });
@@ -123,8 +123,8 @@ export default function ReviewsPage() {
   const handleSubmitReview = () => {
     if (!targetUserId.trim()) {
       toast({
-        title: 'Informe o destinatÃ¡rio',
-        description: 'Selecione o usuÃ¡rio avaliado.',
+        title: 'Informe o destinatário',
+        description: 'Selecione o usuário avaliado.',
         variant: 'destructive',
       });
       return;
@@ -155,27 +155,27 @@ export default function ReviewsPage() {
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">AvaliaÃ§Ãµes</h1>
-          <p className="mt-1 text-muted-foreground">Veja e envie avaliaÃ§Ãµes sobre as atividades</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">Avaliações</h1>
+          <p className="mt-1 text-muted-foreground">Veja e envie avaliações sobre as atividades</p>
         </div>
         <Dialog open={isNewReviewOpen} onOpenChange={setIsNewReviewOpen}>
           <DialogTrigger asChild>
             <Button>
               <Star className="mr-2 h-4 w-4" />
-              Nova AvaliaÃ§Ã£o
+              Nova Avaliação
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Enviar AvaliaÃ§Ã£o</DialogTitle>
-              <DialogDescription>Avalie sua experiÃªncia com a atividade de companhia</DialogDescription>
+              <DialogTitle>Enviar Avaliação</DialogTitle>
+              <DialogDescription>Avalie sua experiência com a atividade de companhia</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>UsuÃ¡rio avaliado</Label>
+                <Label>Usuário avaliado</Label>
                 <Select value={targetUserId} onValueChange={setTargetUserId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o usuÃ¡rio" />
+                    <SelectValue placeholder="Selecione o usuário" />
                   </SelectTrigger>
                   <SelectContent>
                     {recipients.map((item) => (
@@ -187,7 +187,7 @@ export default function ReviewsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Tipo da avaliaÃ§Ã£o</Label>
+                <Label>Tipo da avaliação</Label>
                 <Select
                   value={reviewType}
                   onValueChange={(value: 'voluntario' | 'idoso') => setReviewType(value)}
@@ -196,7 +196,7 @@ export default function ReviewsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="voluntario">Avaliar voluntÃ¡rio</SelectItem>
+                    <SelectItem value="voluntario">Avaliar voluntário</SelectItem>
                     <SelectItem value="idoso">Avaliar idoso</SelectItem>
                   </SelectContent>
                 </Select>
@@ -206,9 +206,9 @@ export default function ReviewsPage() {
                 <StarRating rating={newRating} onRate={setNewRating} interactive />
               </div>
               <div className="space-y-2">
-                <Label>ComentÃ¡rio (opcional)</Label>
+                <Label>Comentário (opcional)</Label>
                 <Textarea
-                  placeholder="Conte como foi sua experiÃªncia..."
+                  placeholder="Conte como foi sua experiência..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   rows={4}
@@ -220,7 +220,7 @@ export default function ReviewsPage() {
                 Cancelar
               </Button>
               <Button onClick={handleSubmitReview} disabled={createReviewMutation.isPending}>
-                {createReviewMutation.isPending ? 'Enviando...' : 'Enviar AvaliaÃ§Ã£o'}
+                {createReviewMutation.isPending ? 'Enviando...' : 'Enviar Avaliação'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -237,7 +237,7 @@ export default function ReviewsPage() {
           <CardContent className="p-6 text-center">
             <div className="mb-2 text-5xl font-bold text-primary">{averageRating.toFixed(1)}</div>
             <StarRating rating={Math.round(averageRating)} />
-            <p className="mt-2 text-sm text-muted-foreground">Baseado em {totalReviews} avaliaÃ§Ãµes</p>
+            <p className="mt-2 text-sm text-muted-foreground">Baseado em {totalReviews} avaliações</p>
           </CardContent>
         </Card>
 
@@ -272,11 +272,11 @@ export default function ReviewsPage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="font-display">AvaliaÃ§Ãµes Recentes</CardTitle>
+            <CardTitle className="font-display">Avaliações Recentes</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="py-10 text-center text-muted-foreground">Carregando avaliaÃ§Ãµes...</p>
+              <p className="py-10 text-center text-muted-foreground">Carregando avaliações...</p>
             ) : (
               <div className="space-y-6">
                 {reviews.map((review, index) => (
@@ -306,7 +306,7 @@ export default function ReviewsPage() {
                             <p className="text-sm text-muted-foreground">
                               avaliou{' '}
                               <span className="font-medium text-foreground">
-                                {review.destinatario?.nome || 'DestinatÃ¡rio'}
+                                {review.destinatario?.nome || 'Destinatário'}
                               </span>
                             </p>
                           </div>
@@ -323,7 +323,7 @@ export default function ReviewsPage() {
                         <div className="mt-3 flex items-center gap-4">
                           <Button variant="ghost" size="sm" className="text-muted-foreground">
                             <ThumbsUp className="mr-1 h-4 w-4" />
-                            Ãštil
+                            Útil
                           </Button>
                         </div>
                       </div>
@@ -333,7 +333,7 @@ export default function ReviewsPage() {
 
                 {reviews.length === 0 && (
                   <div className="py-10 text-center text-muted-foreground">
-                    Nenhuma avaliaÃ§Ã£o encontrada.
+                    Nenhuma avaliação encontrada.
                   </div>
                 )}
               </div>
@@ -344,3 +344,5 @@ export default function ReviewsPage() {
     </div>
   );
 }
+
+

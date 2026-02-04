@@ -131,7 +131,7 @@ export default function EldersPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome, email ou endereÃ§o..."
+                placeholder="Buscar por nome, email ou endereço..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -287,7 +287,7 @@ export default function EldersPage() {
               </div>
 
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">EndereÃ§o</p>
+                <p className="text-sm text-muted-foreground">Endereço</p>
                 <div className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-4 w-4 text-primary" />
                   <p className="font-medium">{selectedElder.endereco}</p>
@@ -299,7 +299,7 @@ export default function EldersPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <p>{selectedElder.usuario?.email || 'NÃ£o informado'}</p>
+                    <p>{selectedElder.usuario?.email || 'Não informado'}</p>
                   </div>
                   {selectedElder.usuario?.telefone && (
                     <div className="flex items-center gap-2">
@@ -321,7 +321,7 @@ export default function EldersPage() {
               )}
 
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">LocalizaÃ§Ã£o</p>
+                <p className="text-sm text-muted-foreground">Localização</p>
                 <p className="font-mono text-sm">
                   {selectedElder.latitude.toFixed(6)}, {selectedElder.longitude.toFixed(6)}
                 </p>
@@ -344,10 +344,10 @@ export default function EldersPage() {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar remoÃ§Ã£o</DialogTitle>
+            <DialogTitle>Confirmar remoção</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja remover <strong>{selectedElder?.usuario?.nome}</strong>? Esta aÃ§Ã£o
-              nÃ£o pode ser desfeita.
+              Tem certeza que deseja remover <strong>{selectedElder?.usuario?.nome}</strong>? Esta ação
+              não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -363,3 +363,5 @@ export default function EldersPage() {
     </div>
   );
 }
+
+

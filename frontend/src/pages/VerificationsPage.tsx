@@ -78,8 +78,8 @@ export default function VerificationsPage() {
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">VerificaÃ§Ãµes</h1>
-          <p className="mt-1 text-muted-foreground">Aprove ou bloqueie voluntÃ¡rios pendentes</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">Verificações</h1>
+          <p className="mt-1 text-muted-foreground">Aprove ou bloqueie voluntários pendentes</p>
         </div>
       </motion.div>
 
@@ -192,3 +192,5 @@ export default function VerificationsPage() {
     </div>
   );
 }
+
+

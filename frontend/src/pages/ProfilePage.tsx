@@ -175,7 +175,7 @@ export default function ProfilePage() {
           {isElder && (
             <>
               <div className="space-y-2">
-                <Label>EndereÃ§o</Label>
+                <Label>Endereço</Label>
                 <Input
                   value={form.endereco}
                   onChange={(e) => setForm((prev) => ({ ...prev, endereco: e.target.value }))}
@@ -272,7 +272,7 @@ export default function ProfilePage() {
 
           <div className="flex justify-end">
             <Button onClick={() => updateProfileMutation.mutate()} disabled={updateProfileMutation.isPending}>
-              {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar alteraÃ§Ãµes'}
+              {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
             </Button>
           </div>
         </CardContent>
@@ -280,3 +280,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+

@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error: unknown) {
         toast({
           title: 'Erro no login',
-          description: getErrorMessage(error, 'Credenciais invÃ¡lidas'),
+          description: getErrorMessage(error, 'Credenciais inválidas'),
           variant: 'destructive',
         });
         return false;
@@ -86,14 +86,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         toast({
           title: 'Cadastro realizado com sucesso!',
-          description: 'Bem-vindo(a) Ã  Rede de Companhia!',
+          description: 'Bem-vindo(a) a Rede de Companhia!',
         });
 
         return true;
       } catch (error: unknown) {
         toast({
           title: 'Erro no cadastro',
-          description: getErrorMessage(error, 'NÃ£o foi possÃ­vel criar a conta'),
+          description: getErrorMessage(error, 'Não foi possível criar a conta'),
           variant: 'destructive',
         });
         return false;
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       toast({
         title: 'Logout realizado',
-        description: 'AtÃ© logo!',
+        description: 'Até logo!',
       });
     }
   }, [toast]);
@@ -149,3 +149,5 @@ export function useAuth() {
   }
   return context;
 }
+
+

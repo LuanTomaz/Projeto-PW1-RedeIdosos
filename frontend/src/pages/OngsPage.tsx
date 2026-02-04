@@ -49,7 +49,7 @@ export default function OngsPage() {
       >
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">ONGs</h1>
-          <p className="mt-1 text-muted-foreground">OrganizaÃ§Ãµes cadastradas na plataforma</p>
+          <p className="mt-1 text-muted-foreground">Organizações cadastradas na plataforma</p>
         </div>
       </motion.div>
 
@@ -63,7 +63,7 @@ export default function OngsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome, CNPJ ou responsÃ¡vel..."
+                placeholder="Buscar por nome, CNPJ ou responsável..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -143,7 +143,7 @@ export default function OngsPage() {
                     {typeof ong.latitude === 'number' && typeof ong.longitude === 'number' && (
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">LocalizaÃ§Ã£o disponÃ­vel</span>
+                        <span className="text-muted-foreground">Localização disponível</span>
                       </div>
                     )}
                   </div>
@@ -186,7 +186,7 @@ export default function OngsPage() {
               </div>
 
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">ResponsÃ¡vel</p>
+                <p className="text-sm text-muted-foreground">Responsável</p>
                 <p className="font-medium">{selectedOng.responsavel}</p>
               </div>
 
@@ -195,7 +195,7 @@ export default function OngsPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <p>{selectedOng.usuario?.email || 'NÃ£o informado'}</p>
+                    <p>{selectedOng.usuario?.email || 'Não informado'}</p>
                   </div>
                   {selectedOng.telefone && (
                     <div className="flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function OngsPage() {
 
               {typeof selectedOng.latitude === 'number' && typeof selectedOng.longitude === 'number' && (
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">LocalizaÃ§Ã£o</p>
+                  <p className="text-sm text-muted-foreground">Localização</p>
                   <p className="font-mono text-sm">
                     {selectedOng.latitude.toFixed(6)}, {selectedOng.longitude.toFixed(6)}
                   </p>
@@ -227,3 +227,5 @@ export default function OngsPage() {
     </div>
   );
 }
+
+
