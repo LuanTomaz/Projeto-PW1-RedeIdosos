@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { authAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import LocationPickerMap from '@/components/LocationPickerMap';
 
 type Coordenadas = {
   latitude: string;
@@ -74,6 +75,11 @@ export default function Onboarding() {
     }
     return { latitude, longitude };
   };
+
+  const parsedLatitude = Number(coords.latitude);
+  const parsedLongitude = Number(coords.longitude);
+  const mapLatitude = Number.isFinite(parsedLatitude) ? parsedLatitude : undefined;
+  const mapLongitude = Number.isFinite(parsedLongitude) ? parsedLongitude : undefined;
 
   const handleSubmit = async () => {
     const parsed = parseCoords();
@@ -269,6 +275,24 @@ export default function Onboarding() {
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Selecione no mapa</Label>
+            <p className="text-xs text-muted-foreground">
+              Clique no mapa para preencher latitude e longitude automaticamente.
+            </p>
+            <LocationPickerMap
+              latitude={mapLatitude}
+              longitude={mapLongitude}
+              onChange={(lat, lng) =>
+                setCoords({
+                  latitude: lat.toFixed(6),
+                  longitude: lng.toFixed(6),
+                })
+              }
+              height={240}
+            />
           </div>
 
           <div className="flex justify-end">

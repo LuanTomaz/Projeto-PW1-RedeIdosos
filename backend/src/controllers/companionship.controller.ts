@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import * as CompanionshipService from "../services/companionship.service";
 import * as ElderService from "../services/elder.service";
 import { z } from "zod";
@@ -43,13 +43,13 @@ export const createCompanionship = async (req: Request, res: Response) => {
         if (userRole === "idoso" && userId) {
             const elder = await ElderService.getElderByUserId(userId);
             if (!elder) {
-                return res.status(400).json({ error: "Perfil de idoso nÃ£o encontrado" });
+                return res.status(400).json({ error: "Perfil de idoso nÃƒÂ£o encontrado" });
             }
             idosoId = elder._id.toString();
         }
 
         if (!idosoId) {
-            return res.status(400).json({ error: "idoso_id Ã© obrigatÃ³rio" });
+            return res.status(400).json({ error: "idoso_id ÃƒÂ© obrigatÃƒÂ³rio" });
         }
 
         const companionship = await CompanionshipService.createCompanionship({
@@ -259,5 +259,6 @@ export const getCompanionshipsByUser = async (req: AuthRequest, res: Response) =
         res.status(400).json({ error: err.message });
     }
 };
+
 
 

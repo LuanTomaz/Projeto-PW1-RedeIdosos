@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -79,6 +79,13 @@ export default function UsersPage() {
     telefone: '',
     tipo_cadastro: 'voluntario',
   });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    nome: '',
+    email: '',
+    telefone: '',
+    senha: '',
+  });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -112,7 +119,7 @@ export default function UsersPage() {
   });
 
   const toggleUserStatusMutation = useMutation({
-    mutationFn: (id: string) => usersAPI.updateStatus(id),
+    mutationFn: ({ id, ativo }: { id: string; ativo: boolean }) => usersAPI.updateStatus(id, ativo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast({ title: 'Status do usuário atualizado' });
@@ -165,6 +172,25 @@ export default function UsersPage() {
     },
   });
 
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { nome: string; email: string; telefone?: string; senha?: string } }) =>
+      usersAPI.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast({ title: 'Usuário atualizado com sucesso' });
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      setEditForm({ nome: '', email: '', telefone: '', senha: '' });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Erro ao atualizar usuário',
+        description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
+    },
+  });
+
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
       const matchesSearch =
@@ -199,6 +225,43 @@ export default function UsersPage() {
         variant: 'destructive',
       });
     }
+  };
+
+  const openEditDialog = (user: User) => {
+    setSelectedUser(user);
+    setEditForm({
+      nome: user.nome ?? '',
+      email: user.email ?? '',
+      telefone: user.telefone ?? '',
+      senha: '',
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEdit = () => {
+    if (!selectedUser) return;
+    const nome = editForm.nome.trim();
+    const email = editForm.email.trim();
+    const telefone = editForm.telefone.trim();
+    const senha = editForm.senha.trim();
+
+    if (!nome || !email) {
+      toast({
+        title: 'Nome e email são obrigatórios',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    updateUserMutation.mutate({
+      id: selectedUser.id,
+      data: {
+        nome,
+        email,
+        telefone: telefone || undefined,
+        ...(senha ? { senha } : {}),
+      },
+    });
   };
 
   return (
@@ -328,7 +391,7 @@ export default function UsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEditDialog(user)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
@@ -338,7 +401,7 @@ export default function UsersPage() {
                             Verificar
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => toggleUserStatusMutation.mutate(user.id)}>
+                        <DropdownMenuItem onClick={() => toggleUserStatusMutation.mutate({ id: user.id, ativo: !user.ativo })}>
                           {user.ativo ? (
                             <>
                               <UserX className="mr-2 h-4 w-4" />
@@ -399,6 +462,64 @@ export default function UsersPage() {
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
               Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setSelectedUser(null);
+            setEditForm({ nome: '', email: '', telefone: '', senha: '' });
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar usuário</DialogTitle>
+            <DialogDescription>Atualize os dados do usuário selecionado.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                value={editForm.nome}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, nome: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input
+                value={editForm.telefone}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, telefone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nova senha (opcional)</Label>
+              <Input
+                type="password"
+                value={editForm.senha}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, senha: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEdit} disabled={updateUserMutation.isPending}>
+              {updateUserMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -473,6 +594,7 @@ export default function UsersPage() {
     </div>
   );
 }
+
 
 
 

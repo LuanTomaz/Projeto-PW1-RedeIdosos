@@ -310,10 +310,13 @@ export const usersAPI = {
     }),
   create: (data: CreateUserData) => api.post('/api/users/create-user', data),
   updateRole: (id: string) => api.put(`/api/users/${id}/promote-admin`),
-  updateStatus: (id: string) => api.put(`/api/users/${id}/block-user`),
+  updateStatus: (id: string, ativo: boolean) =>
+    api.put(`/api/users/${id}/status`, { ativo }),
+  update: (id: string, data: UpdateUserData) =>
+    api.put(`/api/users/${id}/update`, data),
   validate: (id: string) => api.put(`/api/users/${id}/validate`),
   verify: (id: string) => api.put(`/api/users/${id}/validate`),
-  delete: (id: string) => api.put(`/api/users/${id}/block-user`),
+  delete: (id: string) => api.delete(`/api/users/${id}/delete`),
 };
 
 export const eldersAPI = {
@@ -552,6 +555,13 @@ export interface CreateUserData {
   email: string;
   senha: string;
   tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
+  telefone?: string;
+}
+
+export interface UpdateUserData {
+  nome?: string;
+  email?: string;
+  senha?: string;
   telefone?: string;
 }
 

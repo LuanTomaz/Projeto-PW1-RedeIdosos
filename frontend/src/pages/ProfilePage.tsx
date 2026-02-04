@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { eldersAPI, ongsAPI, volunteersAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import LocationPickerMap from '@/components/LocationPickerMap';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error && typeof error === 'object' && 'response' in error) {
@@ -153,6 +154,11 @@ export default function ProfilePage() {
     return { title: 'Perfil', icon: UserCircle };
   }, [isElder, isVolunteer, isOng]);
 
+  const parsedLatitude = Number(form.latitude);
+  const parsedLongitude = Number(form.longitude);
+  const mapLatitude = Number.isFinite(parsedLatitude) ? parsedLatitude : undefined;
+  const mapLongitude = Number.isFinite(parsedLongitude) ? parsedLongitude : undefined;
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -268,6 +274,25 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Selecione no mapa</Label>
+            <p className="text-xs text-muted-foreground">
+              Clique no mapa para preencher latitude e longitude automaticamente.
+            </p>
+            <LocationPickerMap
+              latitude={mapLatitude}
+              longitude={mapLongitude}
+              onChange={(lat, lng) =>
+                setForm((prev) => ({
+                  ...prev,
+                  latitude: lat.toFixed(6),
+                  longitude: lng.toFixed(6),
+                }))
+              }
+              height={240}
+            />
           </div>
 
           <div className="flex justify-end">

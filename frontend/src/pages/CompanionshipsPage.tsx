@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock,
   Eye,
+  ShieldAlert,
   MapPin,
   MoreHorizontal,
   Plus,
@@ -46,6 +47,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { companionshipsAPI, Companionship } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import LocationPickerMap from '@/components/LocationPickerMap';
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   pendente: { label: 'Pendente', color: 'status-pendente', icon: Clock },
@@ -86,7 +88,7 @@ export default function CompanionshipsPage() {
   const { data: companionships = [], isLoading } = useQuery({
     queryKey: ['companionships', user?.papel],
     queryFn: async () => {
-      if (user?.papel === 'idoso' || user?.papel === 'voluntario') {
+      if (user?.papel === 'idoso') {
         return (await companionshipsAPI.getMine()).data;
       }
       return (await companionshipsAPI.getAll()).data;
@@ -179,9 +181,14 @@ export default function CompanionshipsPage() {
         comp.atividade.toLowerCase().includes(searchQuery.toLowerCase()) ||
         comp.local_descricao.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'all' || comp.status === statusFilter;
+      if (user?.papel === 'voluntario') {
+        const isAssigned = comp.voluntario?.usuario?.id === user.id;
+        const isPending = comp.status === 'pendente';
+        return matchesSearch && matchesStatus && (isPending || isAssigned);
+      }
       return matchesSearch && matchesStatus;
     });
-  }, [companionships, searchQuery, statusFilter]);
+  }, [companionships, searchQuery, statusFilter, user?.id, user?.papel]);
 
   const handleAccept = (comp: Companionship) => {
     acceptMutation.mutate(comp.id);
@@ -194,6 +201,11 @@ export default function CompanionshipsPage() {
   const handleCancel = (comp: Companionship) => {
     updateStatusMutation.mutate({ id: comp.id, status: 'cancelado' });
   };
+
+  const parsedLatitude = Number(createForm.latitude);
+  const parsedLongitude = Number(createForm.longitude);
+  const mapLatitude = Number.isFinite(parsedLatitude) ? parsedLatitude : undefined;
+  const mapLongitude = Number.isFinite(parsedLongitude) ? parsedLongitude : undefined;
 
   return (
     <div className="space-y-6">
@@ -387,10 +399,24 @@ export default function CompanionshipsPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               Ver Detalhes
                             </DropdownMenuItem>
-                            {comp.status === 'pendente' && user?.papel === 'voluntario' && (
+                            {comp.status === 'pendente' && user?.papel === 'voluntario' && user.verificado && (
                               <DropdownMenuItem onClick={() => handleAccept(comp)}>
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                 Aceitar
+                              </DropdownMenuItem>
+                            )}
+                            {comp.status === 'pendente' && user?.papel === 'voluntario' && !user.verificado && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  toast({
+                                    title: 'Verificação pendente',
+                                    description:
+                                      'Sua conta ainda não foi verificada. Você só pode aceitar solicitações após a aprovação do administrador.',
+                                  })
+                                }
+                              >
+                                <ShieldAlert className="mr-2 h-4 w-4 text-amber-600" />
+                                Aceitar (aguardando verificação)
                               </DropdownMenuItem>
                             )}
                             {(comp.status === 'aceito' || comp.status === 'em_andamento') && (
@@ -559,6 +585,25 @@ export default function CompanionshipsPage() {
                   placeholder="-46.6333"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Selecione no mapa</Label>
+              <p className="text-xs text-muted-foreground">
+                Clique no mapa para preencher latitude e longitude automaticamente.
+              </p>
+              <LocationPickerMap
+                latitude={mapLatitude}
+                longitude={mapLongitude}
+                onChange={(lat, lng) =>
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    latitude: lat.toFixed(6),
+                    longitude: lng.toFixed(6),
+                  }))
+                }
+                height={220}
+              />
             </div>
           </div>
 
