@@ -2,10 +2,10 @@ import { User, IUser } from "../models/User";
 import bcrypt from "bcryptjs";
 
 export const createUser = async (data: Partial<IUser>) => {
-    const hashedPassword = await bcrypt.hash(data.senha_hash!, 10);
+    const hashedPassword = await bcrypt.hash(data.senha!, 10);
     const user = new User({
         ...data,
-        senha_hash: hashedPassword,
+        senha: hashedPassword,
         papel: "pending",
         verificado: false,
         ativo: false
@@ -22,8 +22,8 @@ export const getUserById = async (id: string) => {
 };
 
 export const updateUser = async (id: string, data: Partial<IUser>) => {
-    if (data.senha_hash) {
-        data.senha_hash = await bcrypt.hash(data.senha_hash, 10);
+    if (data.senha) {
+        data.senha = await bcrypt.hash(data.senha, 10);
     }
     return await User.findByIdAndUpdate(id, data, { new: true });
 };

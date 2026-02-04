@@ -8,7 +8,7 @@ export const createCompanionshipNode = async (
   const session = getNeo4jDriver().session();
 
   try {
-    await session.run(
+    const result = await session.run(
       `
       MERGE (c:Companionship { id: $id })
       SET c.status = $status,
@@ -16,6 +16,8 @@ export const createCompanionshipNode = async (
       `,
       { id, status, data }
     );
+
+    console.log("Neo4j result:", result.summary.counters.updates());
   } finally {
     await session.close();
   }

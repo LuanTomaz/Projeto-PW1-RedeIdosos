@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IUser extends Document {
     nome: string;
     email: string;
-    senha_hash: string;
+    senha: string;
     papel: 'pending' | 'admin' | 'gestor_publico' | 'ong' | 'voluntario' | 'idoso';
     tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
     telefone?: string;
@@ -22,7 +22,7 @@ const UserSchema: Schema = new Schema({
         required: true,
         unique: true
     },
-    senha_hash: {
+    senha: {
         type: String,
         required: true
     },

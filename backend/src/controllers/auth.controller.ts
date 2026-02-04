@@ -74,7 +74,7 @@ export const login = async (req: Request, res: Response) => {
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
 
-        const validPassword = await bcrypt.compare(senha_hash, user.senha_hash);
+        const validPassword = await bcrypt.compare(senha_hash, user.senha);
         if (!validPassword) return res.status(401).json({ error: "Senha incorreta" });
 
         const token = jwt.sign(

@@ -7,7 +7,7 @@ import { User } from "../models/User";
 const createUserSchema = z.object({
   nome: z.string().min(3),
   email: z.string().email(),
-  senha_hash: z.string().min(6),
+  senha: z.string().min(6),
   tipo_cadastro: z.enum(["idoso", "voluntario", "ong"]),
 });
 
