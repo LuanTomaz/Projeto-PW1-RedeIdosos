@@ -17,7 +17,7 @@ const VolunteerSchema: Schema = new Schema({
     usuario_id: {
         type: Schema.Types.ObjectId,
         ref: "User", required: true,
-        Funique: true
+        unique: true
     },
     documentos_url: [{ 
         type: String 

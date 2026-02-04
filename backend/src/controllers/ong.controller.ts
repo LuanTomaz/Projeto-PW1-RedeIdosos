@@ -45,6 +45,26 @@ export const createOng = async (req: Request, res: Response) => {
 // Controlador para obter todas as ONGs
 export const getOngs = async (req: Request, res: Response) => {
     try {
+        const idParam = req.query.id;
+        const id =
+            typeof idParam === "string"
+                ? idParam
+                : Array.isArray(idParam) && typeof idParam[0] === "string"
+                ? idParam[0]
+                : undefined;
+
+        if (id) {
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({ error: "ID invÃ¡lido" });
+            }
+
+            const ong = await OngService.getOngById(id);
+            if (!ong) {
+                return res.status(404).json({ error: "ONG nÃ£o encontrada" });
+            }
+            return res.json(ong);
+        }
+
         const ongs = await OngService.getOngs();
         res.json(ongs);
     } catch (err: any) {

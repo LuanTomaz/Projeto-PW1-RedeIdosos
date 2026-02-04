@@ -1,4 +1,5 @@
 import { User, IUser } from "../models/User";
+import { Volunteer } from "../models/Volunteer";
 import bcrypt from "bcryptjs";
 
 export const createUser = async (data: Partial<IUser>) => {
@@ -65,12 +66,19 @@ export const validateUser = async (userId: string) => {
 
   await user.save();
 
+  if (novoPapel === "voluntario") {
+    await Volunteer.findOneAndUpdate(
+      { usuario_id: user._id },
+      { verificado: true }
+    );
+  }
+
   return user;
 };
 
 
 export const changeUserRole = async (userId: string, novoPapel: string) => {
-    const papelValidos = ['admin', 'gestor_publico', 'ong', 'voluntario', 'idoso'];
+    const papelValidos = ['admin', 'ong', 'voluntario', 'idoso'];
     if (!papelValidos.includes(novoPapel)) {
         throw new Error(`Papel inválido. Valores aceitos: ${papelValidos.join(", ")}`);
     }
@@ -98,7 +106,7 @@ export const blockUser = async (userId: string) => {
 };
 
 export const getUsersByRole = async (papel: string) => {
-    const papelValidos = ['admin', 'gestor_publico', 'ong', 'voluntario', 'idoso'];
+    const papelValidos = ['admin', 'ong', 'voluntario', 'idoso'];
     if (!papelValidos.includes(papel)) {
         throw new Error(`Papel inválido. Valores aceitos: ${papelValidos.join(", ")}`);
     }

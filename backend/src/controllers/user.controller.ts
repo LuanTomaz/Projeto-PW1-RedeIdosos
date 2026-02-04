@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as UserService from "../services/user.service";
 import { z } from "zod";
 import { User } from "../models/User";
+import { Volunteer } from "../models/Volunteer";
 import { createUserNode } from "../neo4j/nodes/user.node";
 
 // Usando validação com Zod
@@ -10,6 +11,10 @@ const createUserSchema = z.object({
   email: z.string().email(),
   senha: z.string().min(6),
   tipo_cadastro: z.enum(["idoso", "voluntario", "ong"]),
+  telefone: z
+    .string()
+    .optional()
+    .transform((value) => (value && value.trim() !== "" ? value : undefined)),
 });
 
 // Controlador para criação de usuário
@@ -20,9 +25,6 @@ export const createUser = async (req: Request, res: Response) => {
     const user = await UserService.createUser(validated);
 
     // Neo4j: garante existencia do node do usuario
-    await createUserNode(user._id.toString());
-
-    // Neo4j: cria o node do usuario (id = user._id do Mongo)
     await createUserNode(user._id.toString());
 
     res.status(201).json({
@@ -177,20 +179,53 @@ export const getAdmins = async (req: Request, res: Response) => {
   }
 };
 
-export const getGestoresPublicos = async (req: Request, res: Response) => {
-  try {
-    const gestores = await UserService.getUsersByRole('gestor_publico');
-    res.json(gestores);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 export const getUnverifiedVolunteers = async (req: Request, res: Response) => {
   try {
     const volunteers = await UserService.getUsersByRole('voluntario');
     const unverified = volunteers.filter((v: any) => !v.verificado);
     res.json(unverified);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Dev-only: ativa/verifica um usuario para testes
+export const devActivateUser = async (req: Request, res: Response) => {
+  try {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({ error: "Endpoint disponivel apenas em development" });
+    }
+
+    const { id, email, papel } = req.body ?? {};
+    if (!id && !email) {
+      return res.status(400).json({ error: "Informe id ou email" });
+    }
+
+    const query = id ? { _id: id } : { email };
+    const updated = await User.findOneAndUpdate(
+      query as any,
+      {
+        $set: {
+          ativo: true,
+          verificado: true,
+          ...(papel ? { papel } : {}),
+        },
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Usuario nao encontrado" });
+    }
+
+    if ((papel ?? updated.tipo_cadastro) === "voluntario") {
+      await Volunteer.findOneAndUpdate(
+        { usuario_id: updated._id },
+        { verificado: true }
+      );
+    }
+
+    res.json({ message: "Usuario ativado para testes", user: updated });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

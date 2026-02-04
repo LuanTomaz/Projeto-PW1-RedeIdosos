@@ -152,14 +152,22 @@ export const getReportsByType = async (req: Request, res: Response) => {
 export const getReportsByUser = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
+        const fromParam = req.query.from ?? req.query.data_inicio;
+        const toParam = req.query.to ?? req.query.data_fim;
+        const from = typeof fromParam === "string" ? new Date(fromParam) : undefined;
+        const to = typeof toParam === "string" ? new Date(toParam) : undefined;
 
         if (!usuario_id) {
             return res.status(401).json({ error: "Usuário não autenticado" });
         }
 
-        const reports = await ReportService.getReportsByUser(usuario_id);
+        const reports = await ReportService.getReportsByUser(usuario_id, {
+            from: from && !Number.isNaN(from.getTime()) ? from : undefined,
+            to: to && !Number.isNaN(to.getTime()) ? to : undefined
+        });
         res.json(reports);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
     }
 };
+

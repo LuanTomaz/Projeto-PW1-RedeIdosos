@@ -147,6 +147,15 @@ export const getReportsByType = async (tipo: string) => {
     return await Report.find({ tipo }).populate("usuario_id", "nome email");
 };
 
-export const getReportsByUser = async (usuarioId: string) => {
-    return await Report.find({ usuario_id: usuarioId }).populate("usuario_id", "nome email");
+export const getReportsByUser = async (
+    usuarioId: string,
+    options?: { from?: Date; to?: Date }
+) => {
+    const filtro: any = { usuario_id: usuarioId };
+    if (options?.from || options?.to) {
+        filtro.gerado_em = {};
+        if (options.from) filtro.gerado_em.$gte = options.from;
+        if (options.to) filtro.gerado_em.$lte = options.to;
+    }
+    return await Report.find(filtro).populate("usuario_id", "nome email");
 };

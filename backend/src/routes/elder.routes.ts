@@ -44,7 +44,7 @@ router.put(
 router.get(
     "/get-elders",
     verifyToken,
-    authorize('admin'),
+    authorize('admin', 'ong', 'voluntario', 'idoso'),
     requireActiveUser,
     getElders
 );

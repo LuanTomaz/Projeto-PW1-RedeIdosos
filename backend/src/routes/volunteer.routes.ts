@@ -37,7 +37,7 @@ router.put(
 router.get(
     "/list", 
     verifyToken, 
-    authorize("admin"),
+    authorize("admin", "ong", "voluntario", "idoso"),
     requireActiveUser,
     getVolunteers
 );

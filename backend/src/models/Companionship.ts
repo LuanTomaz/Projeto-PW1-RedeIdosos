@@ -67,4 +67,6 @@ const CompanionshipSchema: Schema = new Schema({
     foto_comprovante_url: { type: String }
 }, { timestamps: true });
 
+CompanionshipSchema.index({ localizacao: "2dsphere" });
+
 export const Companionship = mongoose.model<ICompanionship>("Companionship", CompanionshipSchema);

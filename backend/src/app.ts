@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { json } from 'body-parser';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -20,7 +21,7 @@ app.use(cors());
 app.use(json());
 
 // Servir arquivos estáticos
-app.use('/uploads', express.static('backend/src'));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Rota para autenticação de usuários
 app.use('/api/auth', authRoutes);

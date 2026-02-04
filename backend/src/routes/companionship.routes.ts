@@ -20,7 +20,7 @@ const router = Router();
 router.get(
     "/list-companionships",
     verifyToken,
-    authorize('admin', 'voluntario', 'idoso'),
+    authorize('admin', 'ong', 'voluntario', 'idoso'),
     requireActiveUser,
     getCompanionships
 );
@@ -38,7 +38,7 @@ router.get(
 router.post(
     "/create-companionship",
     verifyToken,
-    authorize('admin'),
+    authorize('admin', 'ong', 'idoso'),
     requireActiveUser,
     createCompanionship
 );
@@ -65,7 +65,7 @@ router.put(
 router.put(
     "/:id/status",
     verifyToken,
-    authorize('admin', 'voluntario'),
+    authorize('admin', 'ong', 'voluntario', 'idoso'),
     requireActiveUser,
     updateCompanionshipStatus
 );

@@ -45,7 +45,7 @@ router.put(
 router.get(
     "/list-ongs",
     verifyToken,
-    authorize('admin'),
+    authorize('admin', 'ong', 'voluntario', 'idoso'),
     requireActiveUser,
     getOngs
 );

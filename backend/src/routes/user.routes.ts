@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, getUsers, validateUserController, blockUser, getVolunteers, getElders, getOngs, getAdmins, getGestoresPublicos, getUnverifiedVolunteers, promoteToAdmin } from '../controllers/user.controller';
+import { createUser, getUsers, validateUserController, blockUser, getVolunteers, getElders, getOngs, getAdmins, getUnverifiedVolunteers, promoteToAdmin, devActivateUser } from '../controllers/user.controller';
 import { verifyToken } from '../middlewares/auth_middleware';
 import { authorize } from '../middlewares/authorization.middleware';
 import { requireActiveUser } from '../middlewares/status';
@@ -76,6 +76,12 @@ router.get(
     '/filtro/voluntarios/unverified',
      verifyToken, 
      getUnverifiedVolunteers
+);
+
+// Dev-only: ativar/verificar usuario para testes
+router.post(
+    '/dev/activate',
+    devActivateUser
 );
 
 export default router;

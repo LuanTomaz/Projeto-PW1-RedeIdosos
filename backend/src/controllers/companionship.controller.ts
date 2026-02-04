@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as CompanionshipService from "../services/companionship.service";
+import * as ElderService from "../services/elder.service";
 import { z } from "zod";
 import cloudinary from "../config/cloudinary";
 import { createCompanionshipNode, updateCompanionshipStatusNode } from "../neo4j/nodes/companionship.node";
@@ -13,7 +14,7 @@ interface AuthRequest extends Request {
 }
 
 const companionshipSchema = z.object({
-    idoso_id: z.string(),
+    idoso_id: z.string().optional(),
     voluntario_id: z.string().optional(),
     atividade: z.string(),
     descricao: z.string().optional(),
@@ -35,9 +36,25 @@ const companionshipSchema = z.object({
 export const createCompanionship = async (req: Request, res: Response) => {
     try {
         const validated = companionshipSchema.parse(req.body);
+        const userRole = (req as AuthRequest).user?.papel;
+        const userId = (req as AuthRequest).user?.id;
+        let idosoId = validated.idoso_id;
+
+        if (userRole === "idoso" && userId) {
+            const elder = await ElderService.getElderByUserId(userId);
+            if (!elder) {
+                return res.status(400).json({ error: "Perfil de idoso nÃ£o encontrado" });
+            }
+            idosoId = elder._id.toString();
+        }
+
+        if (!idosoId) {
+            return res.status(400).json({ error: "idoso_id Ã© obrigatÃ³rio" });
+        }
+
         const companionship = await CompanionshipService.createCompanionship({
             ...validated,
-            idoso_id: validated.idoso_id as any,
+            idoso_id: idosoId as any,
             voluntario_id: validated.voluntario_id as any,
             data: new Date(validated.data)
         });
@@ -45,12 +62,12 @@ export const createCompanionship = async (req: Request, res: Response) => {
         // Neo4j
         const companionshipId = companionship._id.toString();
         await createCompanionshipNode(companionshipId, companionship.status, companionship.data);
-        await createElderNode(validated.idoso_id);
+        await createElderNode(idosoId);
         if (validated.voluntario_id) {
             await createVolunteerNode(validated.voluntario_id);
-            await createCompanionshipRelations(validated.idoso_id, validated.voluntario_id, companionshipId);
+            await createCompanionshipRelations(idosoId, validated.voluntario_id, companionshipId);
         } else {
-            await createElderRequestCompanionship(validated.idoso_id, companionshipId);
+            await createElderRequestCompanionship(idosoId, companionshipId);
         }
         res.status(201).json(companionship);
     } catch (err: any) {
@@ -61,7 +78,25 @@ export const createCompanionship = async (req: Request, res: Response) => {
 // Controller para listar as companhias.
 export const getCompanionships = async (req: Request, res: Response) => {
     try {
-        const companionships = await CompanionshipService.getCompanionships();
+        const lat = typeof req.query.lat === "string" ? Number(req.query.lat) : undefined;
+        const lng = typeof req.query.lng === "string" ? Number(req.query.lng) : undefined;
+        const maxDistanceKm =
+            typeof req.query.maxDistanceKm === "string"
+                ? Number(req.query.maxDistanceKm)
+                : typeof req.query.radius === "string"
+                ? Number(req.query.radius)
+                : undefined;
+
+        const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+        const companionships = await CompanionshipService.getCompanionships(
+            hasCoords
+                ? {
+                      lat: lat as number,
+                      lng: lng as number,
+                      maxDistanceKm: Number.isFinite(maxDistanceKm) ? (maxDistanceKm as number) : undefined,
+                  }
+                : undefined
+        );
         res.json(companionships);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
@@ -73,6 +108,9 @@ export const updateCompanionship = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         const companionship = await CompanionshipService.updateCompanionship(id, req.body);
+        if (!companionship) {
+            return res.status(404).json({ error: "Companhia nao encontrada" });
+        }
         res.json(companionship);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
@@ -83,7 +121,10 @@ export const updateCompanionship = async (req: Request, res: Response) => {
 export const deleteCompanionship = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        await CompanionshipService.deleteCompanionship(id);
+        const deleted = await CompanionshipService.deleteCompanionship(id);
+        if (!deleted) {
+            return res.status(404).json({ error: "Companhia nao encontrada" });
+        }
 
         // Neo4j
         await deleteNodeById('Companionship', id);
@@ -114,8 +155,12 @@ export const acceptCompanionship = async (req: AuthRequest, res: Response) => {
 
         // Neo4j
         try {
-            const elderId = String((companionship as any).idoso_id);
-            const volId = String((companionship as any).voluntario_id);
+            const elderId =
+                (companionship as any).idoso_id?._id?.toString?.() ??
+                String((companionship as any).idoso_id);
+            const volId =
+                (companionship as any).voluntario_id?._id?.toString?.() ??
+                String((companionship as any).voluntario_id);
             if (elderId && volId) {
                 await createElderNode(elderId);
                 await createVolunteerNode(volId);
@@ -146,19 +191,13 @@ export const completeCompanionship = async (req: Request, res: Response) => {
                 folder: "uploads/companionships",
             }
         );
-        const { foto_comprovante_url } = req.body;
-
         const companionship = await CompanionshipService.completeCompanionship(
             companionshipId,
             result.secure_url
         );
 
         if (!companionship) {
-            return res.status(404).json({ error: "Companhia não encontrada" });
-        }
-
-        if (!companionship) {
-            return res.status(404).json({ error: "Companhia não encontrada" });
+            return res.status(404).json({ error: "Companhia nao encontrada" });
         }
 
         // Neo4j
@@ -184,6 +223,9 @@ export const updateCompanionshipStatus = async (req: AuthRequest, res: Response)
         }
 
         const companionship = await CompanionshipService.updateCompanionshipStatus(id, status);
+        if (!companionship) {
+            return res.status(404).json({ error: "Companhia nao encontrada" });
+        }
 
         // Neo4j
         try {
@@ -217,3 +259,5 @@ export const getCompanionshipsByUser = async (req: AuthRequest, res: Response) =
         res.status(400).json({ error: err.message });
     }
 };
+
+
