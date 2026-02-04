@@ -82,7 +82,8 @@ const normalizeUser = (raw: unknown): User => {
     id: getId(data),
     nome: String(data.nome ?? ''),
     email: String(data.email ?? ''),
-    papel: (String(data.papel ?? 'voluntario') as User['papel']),
+    papel: (String(data.papel ?? 'pending') as User['papel']),
+    tipo_cadastro: String(data.tipo_cadastro ?? 'voluntario') as User['tipo_cadastro'],
     telefone: typeof data.telefone === 'string' ? data.telefone : undefined,
     foto_perfil_url:
       typeof data.foto_perfil_url === 'string' ? data.foto_perfil_url : undefined,
@@ -204,6 +205,31 @@ const normalizeReview = (raw: unknown): Review => {
         ? data.foto_comprovante_url
         : undefined,
     data: String(data.data ?? ''),
+  };
+};
+
+const normalizeOng = (raw: unknown): ONG => {
+  const data = (raw ?? {}) as Record<string, unknown>;
+  const { latitude, longitude } = parseCoordinates(data);
+  const userObject =
+    data.usuario_id && typeof data.usuario_id === 'object'
+      ? normalizeUser(data.usuario_id)
+      : data.usuario && typeof data.usuario === 'object'
+      ? normalizeUser(data.usuario)
+      : undefined;
+
+  return {
+    id: getId(data),
+    usuario_id: getId(data.usuario_id),
+    usuario: userObject,
+    nome: String(data.nome ?? ''),
+    cnpj: String(data.cnpj ?? ''),
+    telefone: String(data.telefone ?? ''),
+    responsavel: String(data.responsavel ?? ''),
+    foto_url: typeof data.foto_url === 'string' ? data.foto_url : undefined,
+    latitude,
+    longitude,
+    ativo: data.ativo === undefined ? true : Boolean(data.ativo),
   };
 };
 
@@ -368,7 +394,12 @@ export const companionshipsAPI = {
         : [],
     })),
   getNearby: (lat: number, lng: number) =>
-    api.get('/api/companionships/list-companionships', { params: { lat, lng } }),
+    api.get('/api/companionships/list-companionships', { params: { lat, lng } }).then((response) => ({
+      ...response,
+      data: Array.isArray(response.data)
+        ? response.data.map(normalizeCompanionship)
+        : [],
+    })),
   create: (data: CompanionshipData) =>
     api
       .post('/api/companionships/create-companionship', {
@@ -393,10 +424,16 @@ export const companionshipsAPI = {
     api
       .patch(`/api/companionships/${id}/accept`)
       .then((response) => ({ ...response, data: normalizeCompanionship(response.data) })),
-  complete: (id: string, formData: FormData) =>
-    api.put(`/api/companionships/${id}/complete`, formData, {
+  complete: (id: string, payload: FormData | File) => {
+    const formData = payload instanceof FormData ? payload : (() => {
+      const fd = new FormData();
+      fd.append('foto_comprovante', payload);
+      return fd;
+    })();
+    return api.put(`/api/companionships/${id}/complete`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    });
+  },
   delete: (id: string) => api.delete(`/api/companionships/${id}/delete`),
 };
 
@@ -415,22 +452,33 @@ export const reviewsAPI = {
         ? response.data.map(normalizeReview)
         : [],
     })),
-  create: (data: ReviewData) =>
-    api.post('/api/reviews/create-review', {
-      ...data,
-      tipo:
-        data.tipo === 'idoso_para_voluntario' || data.tipo === 'voluntario'
-          ? 'voluntario'
-          : 'idoso',
-    }),
+  create: (data: ReviewData, foto?: File) => {
+    const formData = new FormData();
+    formData.append(
+      'tipo',
+      data.tipo === 'idoso_para_voluntario' || data.tipo === 'voluntario'
+        ? 'voluntario'
+        : 'idoso'
+    );
+    formData.append('destinatario_id', data.destinatario_id);
+    formData.append('nota', String(data.nota));
+    if (data.comentario) formData.append('comentario', data.comentario);
+    if (foto) formData.append('foto', foto);
+    return api.post('/api/reviews/create-review', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 export const filesAPI = {
-  upload: (file: File, entityType?: string, entityId?: string) => {
+  upload: (file: File, entityType: string, entityId: string) => {
+    if (!entityType || !entityId) {
+      return Promise.reject(new Error('entidade_tipo e entidade_id sao obrigatorios'));
+    }
     const formData = new FormData();
     formData.append('file', file);
-    if (entityType) formData.append('entidade_tipo', entityType);
-    if (entityId) formData.append('entidade_id', entityId);
+    formData.append('entidade_tipo', entityType);
+    formData.append('entidade_id', entityId);
     return api.post('/api/files', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -446,8 +494,30 @@ export const verificationsAPI = {
 };
 
 export const ongsAPI = {
-  getAll: () => api.get('/api/ongs/list-ongs'),
-  getById: (id: string) => api.get('/api/ongs/list-ongs', { params: { id } }),
+  getAll: () =>
+    api.get('/api/ongs/list-ongs').then((response) => ({
+      ...response,
+      data: Array.isArray(response.data) ? response.data.map(normalizeOng) : [],
+    })),
+  getById: (id: string) =>
+    api.get('/api/ongs/list-ongs', { params: { id } }).then((response) => ({
+      ...response,
+      data: normalizeOng(response.data),
+    })),
+  getMe: () =>
+    api.get('/api/ongs/profile').then((response) => ({
+      ...response,
+      data: normalizeOng(response.data),
+    })),
+  updateMe: (data: Partial<ONG>) =>
+    api
+      .put('/api/ongs/update-profile', {
+        ...data,
+        localizacao: toBackendLocation(data.latitude, data.longitude),
+      })
+      .then((response) => ({ ...response, data: normalizeOng(response.data) })),
+  updateLocation: (latitude: number, longitude: number) =>
+    api.put('/api/ongs/update-location', { latitude, longitude }),
 };
 
 export const mapAPI = {
@@ -466,6 +536,7 @@ export const reportsAPI = {
   getLocations: () => api.get('/api/reports/type/locations'),
   getElders: () => api.get('/api/reports/type/elders'),
   getImpact: () => api.get('/api/reports/type/impact'),
+  create: (data: ReportData) => api.post('/api/reports/create-report', data),
 };
 
 export interface RegisterData {
@@ -480,7 +551,7 @@ export interface CreateUserData {
   nome: string;
   email: string;
   senha: string;
-  papel: string;
+  tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
   telefone?: string;
 }
 
@@ -521,11 +592,19 @@ export interface ReviewData {
   comentario?: string;
 }
 
+export interface ReportData {
+  tipo: string;
+  descricao?: string;
+  data_inicio?: string;
+  data_fim?: string;
+}
+
 export interface User {
   id: string;
   nome: string;
   email: string;
-  papel: 'admin' | 'gestor_publico' | 'ong' | 'voluntario' | 'idoso';
+  papel: 'pending' | 'admin' | 'ong' | 'voluntario' | 'idoso';
+  tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
   telefone?: string;
   foto_perfil_url?: string;
   verificado: boolean;
@@ -584,6 +663,17 @@ export interface Review {
   comentario?: string;
   foto_comprovante_url?: string;
   data: string;
+}
+
+export interface Report {
+  id: string;
+  tipo: string;
+  descricao?: string;
+  data_inicio?: string;
+  data_fim?: string;
+  gerado_em?: string;
+  usuario_id?: string;
+  usuario?: User;
 }
 
 export interface ONG {

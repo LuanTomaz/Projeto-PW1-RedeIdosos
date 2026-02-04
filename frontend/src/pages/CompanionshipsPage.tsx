@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { companionshipsAPI, Companionship } from '@/lib/api';
@@ -49,7 +51,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   pendente: { label: 'Pendente', color: 'status-pendente', icon: Clock },
   aceito: { label: 'Aceito', color: 'status-aceito', icon: CheckCircle2 },
   em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700', icon: Clock },
-  concluido: { label: 'Concluído', color: 'status-concluido', icon: CheckCircle2 },
+  concluido: { label: 'ConcluÃ­do', color: 'status-concluido', icon: CheckCircle2 },
   cancelado: { label: 'Cancelado', color: 'status-cancelado', icon: XCircle },
 };
 
@@ -66,6 +68,17 @@ export default function CompanionshipsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedCompanionship, setSelectedCompanionship] = useState<Companionship | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    idoso_id: '',
+    atividade: '',
+    descricao: '',
+    data: '',
+    hora: '',
+    local_descricao: '',
+    latitude: '',
+    longitude: '',
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -83,12 +96,12 @@ export default function CompanionshipsPage() {
   const acceptMutation = useMutation({
     mutationFn: (id: string) => companionshipsAPI.accept(id),
     onSuccess: () => {
-      toast({ title: 'Solicitação aceita com sucesso' });
+      toast({ title: 'SolicitaÃ§Ã£o aceita com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['companionships'] });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Não foi possível aceitar',
+        title: 'NÃ£o foi possÃ­vel aceitar',
         description: getErrorMessage(error, 'Tente novamente'),
         variant: 'destructive',
       });
@@ -104,8 +117,55 @@ export default function CompanionshipsPage() {
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Não foi possível atualizar o status',
+        title: 'NÃ£o foi possÃ­vel atualizar o status',
         description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () => {
+      const latitude = Number(createForm.latitude);
+      const longitude = Number(createForm.longitude);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return Promise.reject(new Error('Latitude e longitude invÃ¡lidas'));
+      }
+
+      if (user?.papel !== 'idoso' && !createForm.idoso_id.trim()) {
+        return Promise.reject(new Error('Informe o ID do idoso'));
+      }
+
+      return companionshipsAPI.create({
+        idoso_id: user?.papel === 'idoso' ? undefined : createForm.idoso_id.trim(),
+        atividade: createForm.atividade,
+        descricao: createForm.descricao,
+        data: createForm.data,
+        hora: createForm.hora,
+        local_descricao: createForm.local_descricao,
+        latitude,
+        longitude,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: 'SolicitaÃ§Ã£o criada com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['companionships'] });
+      setIsCreateDialogOpen(false);
+      setCreateForm({
+        idoso_id: '',
+        atividade: '',
+        descricao: '',
+        data: '',
+        hora: '',
+        local_descricao: '',
+        latitude: '',
+        longitude: '',
+      });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'NÃ£o foi possÃ­vel criar',
+        description: getErrorMessage(error, 'Verifique os dados e tente novamente'),
         variant: 'destructive',
       });
     },
@@ -144,12 +204,12 @@ export default function CompanionshipsPage() {
       >
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Companhias</h1>
-          <p className="mt-1 text-muted-foreground">Gerencie as solicitações de companhia</p>
+          <p className="mt-1 text-muted-foreground">Gerencie as solicitaÃ§Ãµes de companhia</p>
         </div>
-        {(user?.papel === 'idoso' || user?.papel === 'ong') && (
-          <Button>
+        {(user?.papel === 'idoso' || user?.papel === 'ong' || user?.papel === 'admin') && (
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Nova Solicitação
+            Nova SolicitaÃ§Ã£o
           </Button>
         )}
       </motion.div>
@@ -208,7 +268,7 @@ export default function CompanionshipsPage() {
                   <SelectItem value="pendente">Pendente</SelectItem>
                   <SelectItem value="aceito">Aceito</SelectItem>
                   <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                  <SelectItem value="concluido">Concluído</SelectItem>
+                  <SelectItem value="concluido">ConcluÃ­do</SelectItem>
                   <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
@@ -223,7 +283,7 @@ export default function CompanionshipsPage() {
         transition={{ delay: 0.3 }}
         className="space-y-4"
       >
-        {isLoading && <p className="py-10 text-center text-muted-foreground">Carregando solicitações...</p>}
+        {isLoading && <p className="py-10 text-center text-muted-foreground">Carregando solicitaÃ§Ãµes...</p>}
 
         {!isLoading &&
           filteredCompanionships.map((comp, index) => {
@@ -293,7 +353,7 @@ export default function CompanionshipsPage() {
                                   .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-xs text-muted-foreground">Voluntário</span>
+                            <span className="text-xs text-muted-foreground">VoluntÃ¡rio</span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center gap-1">
@@ -336,7 +396,7 @@ export default function CompanionshipsPage() {
                             {(comp.status === 'aceito' || comp.status === 'em_andamento') && (
                               <DropdownMenuItem onClick={() => handleComplete(comp)}>
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Marcar como Concluído
+                                Marcar como ConcluÃ­do
                               </DropdownMenuItem>
                             )}
                             {comp.status !== 'concluido' && comp.status !== 'cancelado' && (
@@ -360,7 +420,7 @@ export default function CompanionshipsPage() {
 
         {!isLoading && filteredCompanionships.length === 0 && (
           <div className="py-12 text-center">
-            <p className="text-muted-foreground">Nenhuma solicitação encontrada</p>
+            <p className="text-muted-foreground">Nenhuma solicitaÃ§Ã£o encontrada</p>
           </div>
         )}
       </motion.div>
@@ -382,7 +442,7 @@ export default function CompanionshipsPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Horário</p>
+                  <p className="text-sm text-muted-foreground">HorÃ¡rio</p>
                   <p className="font-medium">{selectedCompanionship.hora}</p>
                 </div>
               </div>
@@ -412,6 +472,102 @@ export default function CompanionshipsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
               Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nova solicitaÃ§Ã£o</DialogTitle>
+            <DialogDescription>Preencha os dados da atividade de companhia.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {user?.papel !== 'idoso' && (
+              <div className="space-y-2">
+                <Label>ID do idoso</Label>
+                <Input
+                  value={createForm.idoso_id}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, idoso_id: e.target.value }))}
+                  placeholder="Ex: 65fa..."
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Atividade</Label>
+              <Input
+                value={createForm.atividade}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, atividade: e.target.value }))}
+                placeholder="Ex: Caminhada no parque"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>DescriÃ§Ã£o</Label>
+              <Textarea
+                value={createForm.descricao}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, descricao: e.target.value }))}
+                rows={3}
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Data</Label>
+                <Input
+                  type="date"
+                  value={createForm.data}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, data: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>HorÃ¡rio</Label>
+                <Input
+                  type="time"
+                  value={createForm.hora}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, hora: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Local (descriÃ§Ã£o)</Label>
+              <Input
+                value={createForm.local_descricao}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, local_descricao: e.target.value }))}
+                placeholder="Ex: PraÃ§a central"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Latitude</Label>
+                <Input
+                  value={createForm.latitude}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, latitude: e.target.value }))}
+                  placeholder="-23.5505"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Longitude</Label>
+                <Input
+                  value={createForm.longitude}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, longitude: e.target.value }))}
+                  placeholder="-46.6333"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'Enviando...' : 'Criar solicitaÃ§Ã£o'}
             </Button>
           </DialogFooter>
         </DialogContent>

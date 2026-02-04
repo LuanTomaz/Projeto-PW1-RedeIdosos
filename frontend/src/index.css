@@ -58,7 +58,6 @@
 
     /* Role-based Colors */
     --role-admin: 280 60% 50%;
-    --role-gestor: 205 80% 50%;
     --role-ong: 152 60% 42%;
     --role-voluntario: 24 85% 55%;
     --role-idoso: 174 55% 40%;
@@ -186,10 +185,6 @@
     @apply bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300;
   }
 
-  .role-gestor {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300;
-  }
-
   .role-ong {
     @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300;
   }
@@ -278,3 +273,4 @@
     background-image: var(--gradient-hero);
   }
 }
+

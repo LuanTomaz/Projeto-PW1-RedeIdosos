@@ -18,6 +18,12 @@ import VolunteersPage from "./pages/VolunteersPage";
 import CompanionshipsPage from "./pages/CompanionshipsPage";
 import MapPage from "./pages/MapPage";
 import ReviewsPage from "./pages/ReviewsPage";
+import OngsPage from "./pages/OngsPage";
+import VerificationsPage from "./pages/VerificationsPage";
+import ReportsPage from "./pages/ReportsPage";
+import ProfilePage from "./pages/ProfilePage";
+import Onboarding from "./pages/Onboarding";
+import PendingApproval from "./pages/PendingApproval";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,21 +50,28 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/dashboard/users" element={
-              <ProtectedRoute allowedRoles={['admin', 'gestor_publico']}>
+              <ProtectedRoute allowedRoles={['admin']}>
                 <DashboardLayout>
                   <UsersPage />
                 </DashboardLayout>
               </ProtectedRoute>
             } />
             <Route path="/dashboard/elders" element={
-              <ProtectedRoute allowedRoles={['admin', 'gestor_publico', 'ong']}>
+              <ProtectedRoute allowedRoles={['admin', 'ong']}>
                 <DashboardLayout>
                   <EldersPage />
                 </DashboardLayout>
               </ProtectedRoute>
             } />
+            <Route path="/dashboard/ongs" element={
+              <ProtectedRoute allowedRoles={['admin', 'ong']}>
+                <DashboardLayout>
+                  <OngsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            } />
             <Route path="/dashboard/volunteers" element={
-              <ProtectedRoute allowedRoles={['admin', 'gestor_publico', 'ong']}>
+              <ProtectedRoute allowedRoles={['admin', 'ong']}>
                 <DashboardLayout>
                   <VolunteersPage />
                 </DashboardLayout>
@@ -103,6 +116,41 @@ const App = () => (
               <ProtectedRoute>
                 <DashboardLayout>
                   <ReviewsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/verifications" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <VerificationsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/reports" element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <ReportsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/profile" element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <ProfilePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/onboarding" element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <Onboarding />
+                </DashboardLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/pending" element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <PendingApproval />
                 </DashboardLayout>
               </ProtectedRoute>
             } />

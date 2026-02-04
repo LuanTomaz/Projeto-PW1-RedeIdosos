@@ -29,6 +29,30 @@ interface StatItem {
 export default function Dashboard() {
   const { user } = useAuth();
 
+  if (!user) return null;
+
+  if (user.papel === 'pending' || !user.verificado) {
+    return (
+      <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col gap-4"
+        >
+          <h1 className="text-3xl font-display font-bold text-foreground">Bem-vindo(a), {user.nome.split(' ')[0]}!</h1>
+          <p className="text-muted-foreground">
+            Sua conta está em validação. Assim que aprovada, o dashboard completo ficará disponível.
+          </p>
+        </motion.div>
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            Aguardando validação do administrador.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const [usersQuery, eldersQuery, volunteersQuery, allCompQuery, myCompQuery, reviewsQuery] = useQueries({
     queries: [
       { queryKey: ['dashboard', 'users'], queryFn: async () => (await usersAPI.getAll()).data },
@@ -45,8 +69,6 @@ export default function Dashboard() {
       { queryKey: ['dashboard', 'reviews'], queryFn: async () => (await reviewsAPI.getAll()).data },
     ],
   });
-
-  if (!user) return null;
 
   const users = usersQuery.data ?? [];
   const elders = eldersQuery.data ?? [];
@@ -95,12 +117,6 @@ export default function Dashboard() {
       { icon: UserCircle, label: 'Idosos Cadastrados', value: elders.length, color: 'bg-teal-500' },
       { icon: HandHeart, label: 'Voluntários Cadastrados', value: volunteers.length, color: 'bg-orange-500' },
       { icon: Clock, label: 'Companhias Pendentes', value: pendingCompanionships, color: 'bg-yellow-500' },
-    ],
-    gestor_publico: [
-      { icon: CheckCircle2, label: 'Voluntários Verificados', value: volunteersVerified, color: 'bg-green-500' },
-      { icon: Clock, label: 'Pendentes de Verificação', value: volunteersPendingVerification, color: 'bg-yellow-500' },
-      { icon: CalendarHeart, label: 'Companhias Ativas', value: allCompanionships.length, color: 'bg-blue-500' },
-      { icon: Star, label: 'Média de Avaliações', value: averageReview, color: 'bg-purple-500' },
     ],
     ong: [
       { icon: UserCircle, label: 'Idosos Cadastrados', value: elders.length, color: 'bg-teal-500' },
@@ -191,3 +207,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

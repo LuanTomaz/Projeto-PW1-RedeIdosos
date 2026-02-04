@@ -37,16 +37,16 @@ interface DashboardLayoutProps {
 }
 
 const roleLabels: Record<string, string> = {
+  pending: 'Cadastro Pendente',
   admin: 'Administrador',
-  gestor_publico: 'Gestor Público',
   ong: 'ONG',
   voluntario: 'Voluntário',
   idoso: 'Idoso',
 };
 
 const roleColors: Record<string, string> = {
+  pending: 'bg-slate-100 text-slate-700',
   admin: 'role-admin',
-  gestor_publico: 'role-gestor',
   ong: 'role-ong',
   voluntario: 'role-voluntario',
   idoso: 'role-idoso',
@@ -57,19 +57,20 @@ const getNavItems = (role: string) => {
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   ];
 
+  if (role === 'pending') {
+    return [
+      ...baseItems,
+      { path: '/dashboard/onboarding', icon: UserCircle, label: 'Completar Cadastro' },
+      { path: '/dashboard/pending', icon: Shield, label: 'Status da Conta' },
+    ];
+  }
+
   const roleItems: Record<string, typeof baseItems> = {
     admin: [
       { path: '/dashboard/users', icon: Users, label: 'Usuários' },
       { path: '/dashboard/elders', icon: UserCircle, label: 'Idosos' },
       { path: '/dashboard/volunteers', icon: HandHeart, label: 'Voluntários' },
       { path: '/dashboard/ongs', icon: Building2, label: 'ONGs' },
-      { path: '/dashboard/companionships', icon: CalendarHeart, label: 'Companhias' },
-      { path: '/dashboard/verifications', icon: ClipboardCheck, label: 'Verificações' },
-      { path: '/dashboard/map', icon: MapPin, label: 'Mapa' },
-      { path: '/dashboard/reports', icon: FileText, label: 'Relatórios' },
-    ],
-    gestor_publico: [
-      { path: '/dashboard/users', icon: Users, label: 'Usuários' },
       { path: '/dashboard/companionships', icon: CalendarHeart, label: 'Companhias' },
       { path: '/dashboard/verifications', icon: ClipboardCheck, label: 'Verificações' },
       { path: '/dashboard/map', icon: MapPin, label: 'Mapa' },
@@ -217,6 +218,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
                 {/* Bottom Actions */}
                 <div className="p-4 border-t border-sidebar-border space-y-1">
+                  {user.papel !== 'pending' && (
                   <Link
                     to="/dashboard/profile"
                     onClick={() => setIsSidebarOpen(false)}
@@ -230,6 +232,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <Settings className="w-5 h-5" />
                     <span className="font-medium">Configurações</span>
                   </Link>
+                )}
 
                   <button
                     onClick={handleLogout}
@@ -252,3 +255,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </div>
   );
 }
+
+
+
+

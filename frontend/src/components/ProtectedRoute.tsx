@@ -25,6 +25,19 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (user) {
+    const isOnboarding = location.pathname.startsWith('/dashboard/onboarding');
+    const isPending = location.pathname.startsWith('/dashboard/pending');
+
+    if (!user.ativo && !isOnboarding) {
+      return <Navigate to="/dashboard/onboarding" replace />;
+    }
+
+    if (user.ativo && !user.verificado && !isPending && !isOnboarding) {
+      return <Navigate to="/dashboard/pending" replace />;
+    }
+  }
+
   if (allowedRoles && user && !allowedRoles.includes(user.papel)) {
     return <Navigate to="/dashboard" replace />;
   }

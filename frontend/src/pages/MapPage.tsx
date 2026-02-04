@@ -100,7 +100,7 @@ export default function MapPage() {
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Mapa</h1>
           <p className="mt-1 text-muted-foreground">
-            Visualize a localizaÃ§Ã£o de idosos, voluntÃ¡rios e atividades
+            Visualize a localização de idosos, voluntários e atividades
           </p>
         </div>
       </motion.div>
@@ -114,7 +114,7 @@ export default function MapPage() {
           <TabsList className="mb-4">
             <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="elders">Idosos</TabsTrigger>
-            <TabsTrigger value="volunteers">VoluntÃ¡rios</TabsTrigger>
+            <TabsTrigger value="volunteers">Voluntários</TabsTrigger>
             <TabsTrigger value="companionships">Companhias</TabsTrigger>
           </TabsList>
 
@@ -218,7 +218,7 @@ export default function MapPage() {
             </div>
             <div className="flex items-center gap-2">
               <div className="h-4 w-4 rounded-full bg-orange-500" />
-              <span className="text-sm">VoluntÃ¡rios ({volunteers.length})</span>
+              <span className="text-sm">Voluntários ({volunteers.length})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-4 w-4 rounded-full bg-blue-500" />

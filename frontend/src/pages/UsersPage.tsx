@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -38,20 +39,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { User, usersAPI } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const roleLabels: Record<string, string> = {
+  pending: 'Pendente',
   admin: 'Administrador',
-  gestor_publico: 'Gestor PÃºblico',
   ong: 'ONG',
   voluntario: 'VoluntÃ¡rio',
   idoso: 'Idoso',
 };
 
 const roleColors: Record<string, string> = {
+  pending: 'bg-slate-100 text-slate-700',
   admin: 'role-admin',
-  gestor_publico: 'role-gestor',
   ong: 'role-ong',
   voluntario: 'role-voluntario',
   idoso: 'role-idoso',
@@ -70,16 +72,27 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    nome: '',
+    email: '',
+    senha: '',
+    telefone: '',
+    tipo_cadastro: 'voluntario',
+  });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users', roleFilter],
     queryFn: async () => {
-      const response = await usersAPI.getAll(roleFilter === 'all' ? undefined : roleFilter);
-      return response.data;
+      const response = await usersAPI.getAll(
+        roleFilter === 'all' || roleFilter === 'pending' ? undefined : roleFilter
+      );
+      const data = response.data;
+      return roleFilter === 'pending' ? data.filter((item) => item.papel === 'pending') : data;
     },
   });
 
@@ -87,11 +100,11 @@ export default function UsersPage() {
     mutationFn: (id: string) => usersAPI.validate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'UsuÃ¡rio verificado com sucesso' });
+      toast({ title: 'Usuário verificado com sucesso' });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Erro ao verificar usuÃ¡rio',
+        title: 'Erro ao verificar usuário',
         description: getErrorMessage(error, 'Tente novamente'),
         variant: 'destructive',
       });
@@ -102,12 +115,51 @@ export default function UsersPage() {
     mutationFn: (id: string) => usersAPI.updateStatus(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'Status do usuÃ¡rio atualizado' });
+      toast({ title: 'Status do usuário atualizado' });
     },
     onError: (error: unknown) => {
       toast({
         title: 'Erro ao atualizar status',
         description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const promoteAdminMutation = useMutation({
+    mutationFn: (id: string) => usersAPI.updateRole(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast({ title: 'UsuÃ¡rio promovido a administrador' });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Erro ao promover administrador',
+        description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: () =>
+      usersAPI.create({
+        nome: createForm.nome,
+        email: createForm.email,
+        senha: createForm.senha,
+        telefone: createForm.telefone || undefined,
+        tipo_cadastro: createForm.tipo_cadastro as 'idoso' | 'voluntario' | 'ong',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast({ title: 'Usuário criado com sucesso' });
+      setIsCreateDialogOpen(false);
+      setCreateForm({ nome: '', email: '', senha: '', telefone: '', tipo_cadastro: 'voluntario' });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Erro ao criar usuário',
+        description: getErrorMessage(error, 'Verifique os dados e tente novamente'),
         variant: 'destructive',
       });
     },
@@ -134,7 +186,7 @@ export default function UsersPage() {
     try {
       await usersAPI.delete(selectedUser.id);
       toast({
-        title: 'UsuÃ¡rio removido',
+        title: 'Usuário removido',
         description: `${selectedUser.nome} foi removido com sucesso.`,
       });
       setIsDeleteDialogOpen(false);
@@ -142,7 +194,7 @@ export default function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error: unknown) {
       toast({
-        title: 'Erro ao remover usuÃ¡rio',
+        title: 'Erro ao remover usuário',
         description: getErrorMessage(error, 'Tente novamente'),
         variant: 'destructive',
       });
@@ -189,8 +241,9 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os papÃ©is</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="gestor_publico">Gestor PÃºblico</SelectItem>
+                  
                   <SelectItem value="ong">ONG</SelectItem>
                   <SelectItem value="voluntario">VoluntÃ¡rio</SelectItem>
                   <SelectItem value="idoso">Idoso</SelectItem>
@@ -298,6 +351,12 @@ export default function UsersPage() {
                             </>
                           )}
                         </DropdownMenuItem>
+                        {currentUser?.papel === 'admin' && user.papel !== 'admin' && (
+                          <DropdownMenuItem onClick={() => promoteAdminMutation.mutate(user.id)}>
+                            <ShieldCheck className="mr-2 h-4 w-4" />
+                            Promover a admin
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive"
@@ -316,7 +375,7 @@ export default function UsersPage() {
 
                 {filteredUsers.length === 0 && (
                   <div className="py-12 text-center">
-                    <p className="text-muted-foreground">Nenhum usuÃ¡rio encontrado</p>
+                    <p className="text-muted-foreground">Nenhum usuário encontrado</p>
                   </div>
                 )}
               </div>
@@ -328,10 +387,10 @@ export default function UsersPage() {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar exclusÃ£o</DialogTitle>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir o usuÃ¡rio <strong>{selectedUser?.nome}</strong>? Esta aÃ§Ã£o
-              nÃ£o pode ser desfeita.
+              Tem certeza que deseja excluir o usuário <strong>{selectedUser?.nome}</strong>? Esta ação
+              não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -348,16 +407,70 @@ export default function UsersPage() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Novo usuÃ¡rio</DialogTitle>
-            <DialogDescription>
-              A criaÃ§Ã£o pelo painel ainda nÃ£o estÃ¡ disponÃ­vel nesta tela.
-            </DialogDescription>
+            <DialogTitle>Novo usuário</DialogTitle>
+            <DialogDescription>Preencha os dados para criar um novo usuário.</DialogDescription>
           </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                value={createForm.nome}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, nome: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input
+                value={createForm.telefone}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, telefone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha</Label>
+              <Input
+                type="password"
+                value={createForm.senha}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, senha: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de cadastro</Label>
+              <Select
+                value={createForm.tipo_cadastro}
+                onValueChange={(value) =>
+                  setCreateForm((prev) => ({ ...prev, tipo_cadastro: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="voluntario">VoluntÃ¡rio</SelectItem>
+                  <SelectItem value="idoso">Idoso</SelectItem>
+                  <SelectItem value="ong">ONG</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <DialogFooter>
-            <Button onClick={() => setIsCreateDialogOpen(false)}>Fechar</Button>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => createUserMutation.mutate()} disabled={createUserMutation.isPending}>
+              {createUserMutation.isPending ? 'Criando...' : 'Criar usuÃ¡rio'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+

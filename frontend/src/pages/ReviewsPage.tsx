@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Star, ThumbsUp } from 'lucide-react';
@@ -14,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -25,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { reviewsAPI } from '@/lib/api';
+import { reviewsAPI, usersAPI } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 function StarRating({
@@ -85,6 +84,16 @@ export default function ReviewsPage() {
     queryFn: async () => (await reviewsAPI.getAll()).data,
   });
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['reviews', 'users'],
+    queryFn: async () => (await usersAPI.getAll()).data,
+  });
+
+  const recipients = useMemo(
+    () => users.filter((item) => (reviewType === 'voluntario' ? item.papel === 'voluntario' : item.papel === 'idoso')),
+    [users, reviewType]
+  );
+
   const createReviewMutation = useMutation({
     mutationFn: () =>
       reviewsAPI.create({
@@ -95,7 +104,7 @@ export default function ReviewsPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
-      toast({ title: 'Avaliação enviada com sucesso!' });
+      toast({ title: 'AvaliaÃ§Ã£o enviada com sucesso!' });
       setIsNewReviewOpen(false);
       setNewRating(0);
       setNewComment('');
@@ -104,7 +113,7 @@ export default function ReviewsPage() {
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Erro ao enviar avaliação',
+        title: 'Erro ao enviar avaliaÃ§Ã£o',
         description: getErrorMessage(error, 'Confira os dados e tente novamente'),
         variant: 'destructive',
       });
@@ -114,8 +123,8 @@ export default function ReviewsPage() {
   const handleSubmitReview = () => {
     if (!targetUserId.trim()) {
       toast({
-        title: 'Informe o destinatário',
-        description: 'Preencha o ID do usuário avaliado.',
+        title: 'Informe o destinatÃ¡rio',
+        description: 'Selecione o usuÃ¡rio avaliado.',
         variant: 'destructive',
       });
       return;
@@ -146,33 +155,39 @@ export default function ReviewsPage() {
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Avaliações</h1>
-          <p className="mt-1 text-muted-foreground">Veja e envie avaliações sobre as atividades</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">AvaliaÃ§Ãµes</h1>
+          <p className="mt-1 text-muted-foreground">Veja e envie avaliaÃ§Ãµes sobre as atividades</p>
         </div>
         <Dialog open={isNewReviewOpen} onOpenChange={setIsNewReviewOpen}>
           <DialogTrigger asChild>
             <Button>
               <Star className="mr-2 h-4 w-4" />
-              Nova Avaliação
+              Nova AvaliaÃ§Ã£o
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Enviar Avaliação</DialogTitle>
-              <DialogDescription>Avalie sua experiência com a atividade de companhia</DialogDescription>
+              <DialogTitle>Enviar AvaliaÃ§Ã£o</DialogTitle>
+              <DialogDescription>Avalie sua experiÃªncia com a atividade de companhia</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="destinatario">ID do usuário avaliado</Label>
-                <Input
-                  id="destinatario"
-                  value={targetUserId}
-                  onChange={(e) => setTargetUserId(e.target.value)}
-                  placeholder="Ex: 65fa..."
-                />
+                <Label>UsuÃ¡rio avaliado</Label>
+                <Select value={targetUserId} onValueChange={setTargetUserId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o usuÃ¡rio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {recipients.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.nome} ({item.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Tipo da avaliação</Label>
+                <Label>Tipo da avaliaÃ§Ã£o</Label>
                 <Select
                   value={reviewType}
                   onValueChange={(value: 'voluntario' | 'idoso') => setReviewType(value)}
@@ -181,7 +196,7 @@ export default function ReviewsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="voluntario">Avaliar voluntário</SelectItem>
+                    <SelectItem value="voluntario">Avaliar voluntÃ¡rio</SelectItem>
                     <SelectItem value="idoso">Avaliar idoso</SelectItem>
                   </SelectContent>
                 </Select>
@@ -191,10 +206,9 @@ export default function ReviewsPage() {
                 <StarRating rating={newRating} onRate={setNewRating} interactive />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="comment">Comentário (opcional)</Label>
+                <Label>ComentÃ¡rio (opcional)</Label>
                 <Textarea
-                  id="comment"
-                  placeholder="Conte como foi sua experiência..."
+                  placeholder="Conte como foi sua experiÃªncia..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   rows={4}
@@ -206,7 +220,7 @@ export default function ReviewsPage() {
                 Cancelar
               </Button>
               <Button onClick={handleSubmitReview} disabled={createReviewMutation.isPending}>
-                {createReviewMutation.isPending ? 'Enviando...' : 'Enviar Avaliação'}
+                {createReviewMutation.isPending ? 'Enviando...' : 'Enviar AvaliaÃ§Ã£o'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -223,7 +237,7 @@ export default function ReviewsPage() {
           <CardContent className="p-6 text-center">
             <div className="mb-2 text-5xl font-bold text-primary">{averageRating.toFixed(1)}</div>
             <StarRating rating={Math.round(averageRating)} />
-            <p className="mt-2 text-sm text-muted-foreground">Baseado em {totalReviews} avaliações</p>
+            <p className="mt-2 text-sm text-muted-foreground">Baseado em {totalReviews} avaliaÃ§Ãµes</p>
           </CardContent>
         </Card>
 
@@ -258,11 +272,11 @@ export default function ReviewsPage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="font-display">Avaliações Recentes</CardTitle>
+            <CardTitle className="font-display">AvaliaÃ§Ãµes Recentes</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="py-10 text-center text-muted-foreground">Carregando avaliações...</p>
+              <p className="py-10 text-center text-muted-foreground">Carregando avaliaÃ§Ãµes...</p>
             ) : (
               <div className="space-y-6">
                 {reviews.map((review, index) => (
@@ -292,7 +306,7 @@ export default function ReviewsPage() {
                             <p className="text-sm text-muted-foreground">
                               avaliou{' '}
                               <span className="font-medium text-foreground">
-                                {review.destinatario?.nome || 'Destinatário'}
+                                {review.destinatario?.nome || 'DestinatÃ¡rio'}
                               </span>
                             </p>
                           </div>
@@ -309,7 +323,7 @@ export default function ReviewsPage() {
                         <div className="mt-3 flex items-center gap-4">
                           <Button variant="ghost" size="sm" className="text-muted-foreground">
                             <ThumbsUp className="mr-1 h-4 w-4" />
-                            Útil
+                            Ãštil
                           </Button>
                         </div>
                       </div>
@@ -319,7 +333,7 @@ export default function ReviewsPage() {
 
                 {reviews.length === 0 && (
                   <div className="py-10 text-center text-muted-foreground">
-                    Nenhuma avaliação encontrada.
+                    Nenhuma avaliaÃ§Ã£o encontrada.
                   </div>
                 )}
               </div>
