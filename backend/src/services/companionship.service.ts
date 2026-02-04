@@ -7,12 +7,38 @@ const applyPopulate = (query: any) =>
         .populate({ path: "idoso_id", populate: { path: "usuario_id" } })
         .populate({ path: "voluntario_id", populate: { path: "usuario_id" } });
 
+const getStartDateTime = (dateValue: Date, timeValue: string) => {
+    const [hoursRaw, minutesRaw] = timeValue.split(":");
+    const hours = Number(hoursRaw);
+    const minutes = Number(minutesRaw ?? "0");
+    const date = new Date(dateValue);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+        return date;
+    }
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+};
+
+const autoUpdateToInProgress = async () => {
+    const now = new Date();
+    const candidates = await Companionship.find({ status: "aceita" });
+    const updates = candidates.map(async (item) => {
+        const start = getStartDateTime(item.data, item.hora);
+        if (now >= start) {
+            item.status = "em_andamento";
+            await item.save();
+        }
+    });
+    await Promise.all(updates);
+};
+
 export const createCompanionship = async (data: Partial<ICompanionship>) => {
     const companionship = new Companionship(data);
     return await companionship.save();
 };
 
 export const getCompanionships = async (options?: { lat?: number; lng?: number; maxDistanceKm?: number }) => {
+    await autoUpdateToInProgress();
     if (options?.lat !== undefined && options?.lng !== undefined) {
         const maxDistanceKm = options.maxDistanceKm ?? 10;
         return await applyPopulate(
@@ -34,6 +60,7 @@ export const getCompanionships = async (options?: { lat?: number; lng?: number; 
 };
 
 export const getCompanionshipById = async (id: string) => {
+    await autoUpdateToInProgress();
     return await applyPopulate(Companionship.findById(id));
 };
 
@@ -101,6 +128,7 @@ export const updateCompanionshipStatus = async (companionshipId: string, novoSta
 };
 
 export const getCompanionshipsByUser = async (userId: string, userType: "idoso" | "voluntario") => {
+    await autoUpdateToInProgress();
     if (userType === "idoso") {
         const elder = await Elder.findOne({ usuario_id: userId });
         if (!elder) return [];

@@ -175,15 +175,25 @@ export default function CompanionshipsPage() {
 
   const filteredCompanionships = useMemo(() => {
     return companionships.filter((comp) => {
+      const now = new Date();
+      const [hoursRaw, minutesRaw] = comp.hora.split(':');
+      const hours = Number(hoursRaw);
+      const minutes = Number(minutesRaw ?? '0');
+      const start = new Date(comp.data);
+      if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+        start.setHours(hours, minutes, 0, 0);
+      }
+      const effectiveStatus =
+        comp.status === 'aceito' && now >= start ? 'em_andamento' : comp.status;
       const elderName = comp.idoso?.usuario?.nome || '';
       const matchesSearch =
         elderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         comp.atividade.toLowerCase().includes(searchQuery.toLowerCase()) ||
         comp.local_descricao.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || comp.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || effectiveStatus === statusFilter;
       if (user?.papel === 'voluntario') {
         const isAssigned = comp.voluntario?.usuario?.id === user.id;
-        const isPending = comp.status === 'pendente';
+        const isPending = effectiveStatus === 'pendente';
         return matchesSearch && matchesStatus && (isPending || isAssigned);
       }
       return matchesSearch && matchesStatus;
@@ -233,7 +243,19 @@ export default function CompanionshipsPage() {
         className="grid grid-cols-2 gap-4 md:grid-cols-5"
       >
         {Object.entries(statusConfig).map(([status, config]) => {
-          const count = companionships.filter((item) => item.status === status).length;
+          const count = companionships.filter((item) => {
+            const now = new Date();
+            const [hoursRaw, minutesRaw] = item.hora.split(':');
+            const hours = Number(hoursRaw);
+            const minutes = Number(minutesRaw ?? '0');
+            const start = new Date(item.data);
+            if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+              start.setHours(hours, minutes, 0, 0);
+            }
+            const effectiveStatus =
+              item.status === 'aceito' && now >= start ? 'em_andamento' : item.status;
+            return effectiveStatus === status;
+          }).length;
           return (
             <Card
               key={status}
@@ -299,7 +321,17 @@ export default function CompanionshipsPage() {
 
         {!isLoading &&
           filteredCompanionships.map((comp, index) => {
-            const statusInfo = statusConfig[comp.status];
+            const now = new Date();
+            const [hoursRaw, minutesRaw] = comp.hora.split(':');
+            const hours = Number(hoursRaw);
+            const minutes = Number(minutesRaw ?? '0');
+            const start = new Date(comp.data);
+            if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+              start.setHours(hours, minutes, 0, 0);
+            }
+            const effectiveStatus =
+              comp.status === 'aceito' && now >= start ? 'em_andamento' : comp.status;
+            const statusInfo = statusConfig[effectiveStatus];
             const elderName = comp.idoso?.usuario?.nome || 'Idoso';
             const volunteerName = comp.voluntario?.usuario?.nome;
             return (
@@ -460,6 +492,21 @@ export default function CompanionshipsPage() {
 
           {selectedCompanionship && (
             <div className="space-y-4">
+              {(() => {
+                const now = new Date();
+                const [hoursRaw, minutesRaw] = selectedCompanionship.hora.split(':');
+                const hours = Number(hoursRaw);
+                const minutes = Number(minutesRaw ?? '0');
+                const start = new Date(selectedCompanionship.data);
+                if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+                  start.setHours(hours, minutes, 0, 0);
+                }
+                const effectiveStatus =
+                  selectedCompanionship.status === 'aceito' && now >= start
+                    ? 'em_andamento'
+                    : selectedCompanionship.status;
+                return (
+                  <>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Data</p>
@@ -488,10 +535,13 @@ export default function CompanionshipsPage() {
               </div>
 
               <div className="pt-2">
-                <Badge className={cn('font-medium', statusConfig[selectedCompanionship.status].color)}>
-                  {statusConfig[selectedCompanionship.status].label}
+                <Badge className={cn('font-medium', statusConfig[effectiveStatus].color)}>
+                  {statusConfig[effectiveStatus].label}
                 </Badge>
               </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 
