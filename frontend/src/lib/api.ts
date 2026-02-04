@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// API base configuration
 const API_BASE_URL = 'http://localhost:3000';
 
 export const api = axios.create({
@@ -10,7 +9,204 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+const getId = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const id = record._id ?? record.id;
+    if (typeof id === 'string') return id;
+  }
+  return '';
+};
+
+const parseCoordinates = (
+  raw: Record<string, unknown>
+): { latitude?: number; longitude?: number } => {
+  const localizacao = raw.localizacao as
+    | { coordinates?: [number, number] }
+    | undefined;
+  if (localizacao?.coordinates?.length === 2) {
+    const [longitude, latitude] = localizacao.coordinates;
+    return { latitude, longitude };
+  }
+
+  const latitude = typeof raw.latitude === 'number' ? raw.latitude : undefined;
+  const longitude =
+    typeof raw.longitude === 'number' ? raw.longitude : undefined;
+  return { latitude, longitude };
+};
+
+const toBackendLocation = (
+  latitude?: number,
+  longitude?: number
+):
+  | { type: 'Point'; coordinates: [number, number] }
+  | undefined => {
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    return undefined;
+  }
+  return {
+    type: 'Point',
+    coordinates: [longitude, latitude],
+  };
+};
+
+const statusToFrontend = (
+  status?: string
+): Companionship['status'] | undefined => {
+  if (status === 'aceita') return 'aceito';
+  if (status === 'concluida') return 'concluido';
+  if (status === 'cancelada') return 'cancelado';
+  if (
+    status === 'pendente' ||
+    status === 'aceito' ||
+    status === 'em_andamento' ||
+    status === 'concluido' ||
+    status === 'cancelado'
+  ) {
+    return status;
+  }
+  return undefined;
+};
+
+const statusToBackend = (status: string): string => {
+  if (status === 'aceito') return 'aceita';
+  if (status === 'concluido') return 'concluida';
+  if (status === 'cancelado') return 'cancelada';
+  return status;
+};
+
+const normalizeUser = (raw: unknown): User => {
+  const data = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: getId(data),
+    nome: String(data.nome ?? ''),
+    email: String(data.email ?? ''),
+    papel: (String(data.papel ?? 'voluntario') as User['papel']),
+    telefone: typeof data.telefone === 'string' ? data.telefone : undefined,
+    foto_perfil_url:
+      typeof data.foto_perfil_url === 'string' ? data.foto_perfil_url : undefined,
+    verificado: Boolean(data.verificado),
+    ativo: data.ativo === undefined ? true : Boolean(data.ativo),
+  };
+};
+
+const normalizeElder = (raw: unknown): Elder => {
+  const data = (raw ?? {}) as Record<string, unknown>;
+  const { latitude, longitude } = parseCoordinates(data);
+  const userObject =
+    data.usuario_id && typeof data.usuario_id === 'object'
+      ? normalizeUser(data.usuario_id)
+      : data.usuario && typeof data.usuario === 'object'
+      ? normalizeUser(data.usuario)
+      : undefined;
+
+  return {
+    id: getId(data),
+    usuario_id: getId(data.usuario_id),
+    usuario: userObject,
+    endereco: String(data.endereco ?? ''),
+    latitude: latitude ?? 0,
+    longitude: longitude ?? 0,
+    data_nascimento: String(data.data_nascimento ?? ''),
+    necessidades_especiais:
+      typeof data.necessidades_especiais === 'string'
+        ? data.necessidades_especiais
+        : undefined,
+  };
+};
+
+const normalizeVolunteer = (raw: unknown): Volunteer => {
+  const data = (raw ?? {}) as Record<string, unknown>;
+  const { latitude, longitude } = parseCoordinates(data);
+  const userObject =
+    data.usuario_id && typeof data.usuario_id === 'object'
+      ? normalizeUser(data.usuario_id)
+      : data.usuario && typeof data.usuario === 'object'
+      ? normalizeUser(data.usuario)
+      : undefined;
+
+  return {
+    id: getId(data),
+    usuario_id: getId(data.usuario_id),
+    usuario: userObject,
+    documentos_url:
+      typeof data.documentos_url === 'string'
+        ? data.documentos_url
+        : undefined,
+    disponibilidade:
+      typeof data.disponibilidade === 'string' ? data.disponibilidade : undefined,
+    area_atuacao:
+      typeof data.area_atuacao === 'string' ? data.area_atuacao : undefined,
+    latitude,
+    longitude,
+  };
+};
+
+const normalizeCompanionship = (raw: unknown): Companionship => {
+  const data = (raw ?? {}) as Record<string, unknown>;
+  const { latitude, longitude } = parseCoordinates(data);
+
+  const elderObject =
+    data.idoso_id && typeof data.idoso_id === 'object'
+      ? normalizeElder(data.idoso_id)
+      : undefined;
+  const volunteerObject =
+    data.voluntario_id && typeof data.voluntario_id === 'object'
+      ? normalizeVolunteer(data.voluntario_id)
+      : undefined;
+
+  return {
+    id: getId(data),
+    idoso_id: getId(data.idoso_id),
+    voluntario_id: getId(data.voluntario_id) || undefined,
+    idoso: elderObject,
+    voluntario: volunteerObject,
+    atividade: String(data.atividade ?? ''),
+    descricao: String(data.descricao ?? ''),
+    data: String(data.data ?? ''),
+    hora: String(data.hora ?? ''),
+    latitude: latitude ?? 0,
+    longitude: longitude ?? 0,
+    local_descricao: String(data.local_descricao ?? ''),
+    status: statusToFrontend(String(data.status ?? 'pendente')) ?? 'pendente',
+    foto_comprovante_url:
+      typeof data.foto_comprovante_url === 'string'
+        ? data.foto_comprovante_url
+        : undefined,
+    created_at: String(data.createdAt ?? data.created_at ?? ''),
+    updated_at: String(data.updatedAt ?? data.updated_at ?? ''),
+  };
+};
+
+const normalizeReview = (raw: unknown): Review => {
+  const data = (raw ?? {}) as Record<string, unknown>;
+  const author =
+    data.autor_id && typeof data.autor_id === 'object'
+      ? normalizeUser(data.autor_id)
+      : undefined;
+  const receiver =
+    data.destinatario_id && typeof data.destinatario_id === 'object'
+      ? normalizeUser(data.destinatario_id)
+      : undefined;
+
+  return {
+    id: getId(data),
+    autor_id: getId(data.autor_id),
+    destinatario_id: getId(data.destinatario_id),
+    autor: author,
+    destinatario: receiver,
+    tipo: String(data.tipo ?? ''),
+    nota: Number(data.nota ?? 0),
+    comentario: typeof data.comentario === 'string' ? data.comentario : undefined,
+    foto_comprovante_url:
+      typeof data.foto_comprovante_url === 'string'
+        ? data.foto_comprovante_url
+        : undefined,
+    data: String(data.data ?? ''),
+  };
+};
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
@@ -22,7 +218,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -35,162 +230,244 @@ api.interceptors.response.use(
   }
 );
 
-// Auth endpoints
 export const authAPI = {
-  login: (email: string, senha: string) => 
-    api.post('/login', { email, senha }),
-  register: (data: RegisterData) => 
-    api.post('/api/users/create-user', data),
-  logout: () => 
-    api.post('/logout'),
+  login: (email: string, senha: string) =>
+    api.post('/api/auth/login', { email, senha_hash: senha }).then((response) => ({
+      ...response,
+      data: {
+        ...response.data,
+        user: normalizeUser(response.data?.user),
+      },
+    })),
+  register: (data: RegisterData) => api.post('/api/users/create-user', data),
+  logout: () => api.post('/api/auth/logout'),
+  registerElderProfile: (data: ElderData) =>
+    api
+      .post('/api/auth/profiles/elder', {
+        endereco: data.endereco,
+        data_nascimento: data.data_nascimento,
+        necessidades_especiais: data.necessidades_especiais,
+        localizacao: toBackendLocation(data.latitude, data.longitude),
+      })
+      .then((response) => ({ ...response, data: normalizeElder(response.data) })),
+  registerVolunteerProfile: (data: VolunteerData) =>
+    api
+      .post('/api/auth/profiles/volunteer', {
+        disponibilidade: data.disponibilidade,
+        area_atuacao: data.area_atuacao,
+        localizacao: toBackendLocation(data.latitude, data.longitude),
+      })
+      .then((response) => ({ ...response, data: normalizeVolunteer(response.data) })),
+  registerOngProfile: (data: Partial<ONG>) =>
+    api.post('/api/auth/profiles/ong', {
+      cnpj: data.cnpj,
+      responsavel: data.responsavel,
+      telefone: data.telefone,
+      localizacao: toBackendLocation(data.latitude, data.longitude),
+    }),
 };
 
-// Users endpoints
 export const usersAPI = {
-  getAll: (role?: string) => 
-    api.get('/users', { params: { role } }),
-  getById: (id: string) => 
-    api.get(`/users/${id}`),
-  create: (data: CreateUserData) => 
-    api.post('/users', data),
-  updateRole: (id: string, role: string) => 
-    api.put(`/users/${id}/role`, { role }),
-  updateStatus: (id: string, ativo: boolean) => 
-    api.put(`/users/${id}/status`, { ativo }),
-  validate: (id: string) => 
-    api.put(`/users/${id}/validate`),
-  verify: (id: string) => 
-    api.put(`/users/${id}/verify`),
-  delete: (id: string) => 
-    api.delete(`/users/${id}`),
+  getAll: (role?: string) =>
+    api.get('/api/users/list-users', { params: { papel: role } }).then((response) => ({
+      ...response,
+      data: Array.isArray(response.data)
+        ? response.data.map(normalizeUser)
+        : [],
+    })),
+  getById: (id: string) =>
+    api.get('/api/users/list-users').then((response) => {
+      const users = Array.isArray(response.data)
+        ? response.data.map(normalizeUser)
+        : [];
+      return { ...response, data: users.find((user) => user.id === id) };
+    }),
+  create: (data: CreateUserData) => api.post('/api/users/create-user', data),
+  updateRole: (id: string) => api.put(`/api/users/${id}/promote-admin`),
+  updateStatus: (id: string) => api.put(`/api/users/${id}/block-user`),
+  validate: (id: string) => api.put(`/api/users/${id}/validate`),
+  verify: (id: string) => api.put(`/api/users/${id}/validate`),
+  delete: (id: string) => api.put(`/api/users/${id}/block-user`),
 };
 
-// Elders endpoints
 export const eldersAPI = {
-  getAll: () => 
-    api.get('/elders'),
-  getMe: () => 
-    api.get('/elders/me'),
-  create: (data: ElderData) => 
-    api.post('/elders', data),
-  updateMe: (data: Partial<ElderData>) => 
-    api.put('/elders/me', data),
-  updateLocation: (latitude: number, longitude: number) => 
-    api.put('/elders/me/location', { latitude, longitude }),
+  getAll: () =>
+    api.get('/api/elders/get-elders').then((response) => ({
+      ...response,
+      data: Array.isArray(response.data)
+        ? response.data.map(normalizeElder)
+        : [],
+    })),
+  getMe: () =>
+    api.get('/api/elders/me/profile').then((response) => ({
+      ...response,
+      data: normalizeElder(response.data),
+    })),
+  create: (data: ElderData) =>
+    authAPI.registerElderProfile(data).then((response) => ({
+      ...response,
+      data: normalizeElder(response.data),
+    })),
+  updateMe: (data: Partial<ElderData>) =>
+    api
+      .put('/api/elders/me/update', {
+        ...data,
+        localizacao: toBackendLocation(data.latitude, data.longitude),
+      })
+      .then((response) => ({ ...response, data: normalizeElder(response.data) })),
+  updateLocation: (latitude: number, longitude: number) =>
+    api.put('/api/elders/me/location', { latitude, longitude }),
+  delete: (id: string) => api.delete(`/api/elders/${id}/delete-elder`),
 };
 
-// Volunteers endpoints
 export const volunteersAPI = {
-  getAll: () => 
-    api.get('/volunteers'),
-  getMe: () => 
-    api.get('/volunteers/me'),
-  updateMe: (data: Partial<VolunteerData>) => 
-    api.put('/volunteers/me', data),
-  updateLocation: (latitude: number, longitude: number) => 
-    api.put('/volunteers/me/location', { latitude, longitude }),
+  getAll: () =>
+    api.get('/api/volunteers/list').then((response) => ({
+      ...response,
+      data: Array.isArray(response.data)
+        ? response.data.map(normalizeVolunteer)
+        : [],
+    })),
+  getMe: () =>
+    api.get('/api/volunteers/me/profile').then((response) => ({
+      ...response,
+      data: normalizeVolunteer(response.data),
+    })),
+  updateMe: (data: Partial<VolunteerData>) =>
+    api
+      .put('/api/volunteers/update-profile', {
+        ...data,
+        localizacao: toBackendLocation(data.latitude, data.longitude),
+      })
+      .then((response) => ({ ...response, data: normalizeVolunteer(response.data) })),
+  updateLocation: (latitude: number, longitude: number) =>
+    api.put('/api/volunteers/update-location', { latitude, longitude }),
+  delete: (id: string) => api.delete(`/api/volunteers/${id}/delete`),
 };
 
-// Companionships (Solicitações) endpoints
 export const companionshipsAPI = {
-  getAll: () => 
-    api.get('/companionships'),
-  getById: (id: string) => 
-    api.get(`/companionships/${id}`),
-  getMine: () => 
-    api.get('/companionships/me'),
-  getNearby: (lat: number, lng: number) => 
-    api.get('/map/companionships/nearby', { params: { lat, lng } }),
-  create: (data: CompanionshipData) => 
-    api.post('/companionships', data),
-  update: (id: string, data: Partial<CompanionshipData>) => 
-    api.put(`/companionships/${id}`, data),
-  updateStatus: (id: string, status: string) => 
-    api.put(`/companionships/${id}/status`, { status }),
-  accept: (id: string) => 
-    api.post(`/companionships/${id}/accept`),
-  complete: (id: string) => 
-    api.put(`/companionships/${id}/complete`),
-  match: (idosoId: string, voluntarioId: string) => 
-    api.post('/companionships/match', { idoso_id: idosoId, voluntario_id: voluntarioId }),
-  delete: (id: string) => 
-    api.delete(`/companionships/${id}`),
+  getAll: () =>
+    api.get('/api/companionships/list-companionships').then((response) => ({
+      ...response,
+      data: Array.isArray(response.data)
+        ? response.data.map(normalizeCompanionship)
+        : [],
+    })),
+  getById: (id: string) =>
+    api.get('/api/companionships/list-companionships').then((response) => {
+      const items = Array.isArray(response.data)
+        ? response.data.map(normalizeCompanionship)
+        : [];
+      return { ...response, data: items.find((item) => item.id === id) };
+    }),
+  getMine: () =>
+    api.get('/api/companionships/my-companionships').then((response) => ({
+      ...response,
+      data: Array.isArray(response.data)
+        ? response.data.map(normalizeCompanionship)
+        : [],
+    })),
+  getNearby: (lat: number, lng: number) =>
+    api.get('/api/companionships/list-companionships', { params: { lat, lng } }),
+  create: (data: CompanionshipData) =>
+    api
+      .post('/api/companionships/create-companionship', {
+        ...data,
+        localizacao: toBackendLocation(data.latitude, data.longitude),
+      })
+      .then((response) => ({ ...response, data: normalizeCompanionship(response.data) })),
+  update: (id: string, data: Partial<CompanionshipData>) =>
+    api
+      .put(`/api/companionships/${id}/update`, {
+        ...data,
+        localizacao: toBackendLocation(data.latitude, data.longitude),
+      })
+      .then((response) => ({ ...response, data: normalizeCompanionship(response.data) })),
+  updateStatus: (id: string, status: string) =>
+    api
+      .put(`/api/companionships/${id}/status`, {
+        status: statusToBackend(status),
+      })
+      .then((response) => ({ ...response, data: normalizeCompanionship(response.data) })),
+  accept: (id: string) =>
+    api
+      .patch(`/api/companionships/${id}/accept`)
+      .then((response) => ({ ...response, data: normalizeCompanionship(response.data) })),
+  complete: (id: string, formData: FormData) =>
+    api.put(`/api/companionships/${id}/complete`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  delete: (id: string) => api.delete(`/api/companionships/${id}/delete`),
 };
 
-// Reviews endpoints
 export const reviewsAPI = {
-  getAll: () => 
-    api.get('/reviews'),
-  getMine: () => 
-    api.get('/reviews/me'),
-  create: (data: ReviewData) => 
-    api.post('/reviews', data),
+  getAll: () =>
+    api.get('/api/reviews/view-reviews').then((response) => ({
+      ...response,
+      data: Array.isArray(response.data)
+        ? response.data.map(normalizeReview)
+        : [],
+    })),
+  getMine: () =>
+    api.get('/api/reviews/view-reviews').then((response) => ({
+      ...response,
+      data: Array.isArray(response.data)
+        ? response.data.map(normalizeReview)
+        : [],
+    })),
+  create: (data: ReviewData) =>
+    api.post('/api/reviews/create-review', {
+      ...data,
+      tipo:
+        data.tipo === 'idoso_para_voluntario' || data.tipo === 'voluntario'
+          ? 'voluntario'
+          : 'idoso',
+    }),
 };
 
-// Files/Upload endpoints
 export const filesAPI = {
   upload: (file: File, entityType?: string, entityId?: string) => {
     const formData = new FormData();
     formData.append('file', file);
     if (entityType) formData.append('entidade_tipo', entityType);
     if (entityId) formData.append('entidade_id', entityId);
-    return api.post('/upload', formData, {
+    return api.post('/api/files', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
-  getById: (id: string) => 
-    api.get(`/files/${id}`),
-  delete: (id: string) => 
-    api.delete(`/files/${id}`),
+  getById: (id: string) => api.get(`/api/files/${id}`),
+  delete: (id: string) => api.delete(`/api/files/${id}`),
 };
 
-// Verifications endpoints
 export const verificationsAPI = {
-  getAll: () => 
-    api.get('/verifications'),
-  approve: (id: string) => 
-    api.put(`/verifications/${id}/approve`),
-  delete: (id: string) => 
-    api.delete(`/verifications/${id}`),
+  getAll: () => usersAPI.getAll('voluntario'),
+  approve: (id: string) => api.put(`/api/users/${id}/validate`),
+  delete: (id: string) => api.put(`/api/users/${id}/block-user`),
 };
 
-// ONGs endpoints
 export const ongsAPI = {
-  getAll: () => 
-    api.get('/ongs'),
-  getById: (id: string) => 
-    api.get(`/ongs/${id}`),
+  getAll: () => api.get('/api/ongs/list-ongs'),
+  getById: (id: string) => api.get('/api/ongs/list-ongs', { params: { id } }),
 };
 
-// Map endpoints
 export const mapAPI = {
-  getCompanionships: () => 
-    api.get('/map/companionships'),
-  getElders: () => 
-    api.get('/map/elders'),
-  getVolunteers: () => 
-    api.get('/map/volunteers'),
-  getNearbyCompanionships: (lat: number, lng: number) => 
-    api.get('/map/companionships/nearby', { params: { lat, lng } }),
-  getMyCompanionships: () => 
-    api.get('/map/companionships/me'),
+  getCompanionships: () => companionshipsAPI.getAll(),
+  getElders: () => eldersAPI.getAll(),
+  getVolunteers: () => volunteersAPI.getAll(),
+  getNearbyCompanionships: (lat: number, lng: number) =>
+    api.get('/api/companionships/list-companionships', { params: { lat, lng } }),
+  getMyCompanionships: () => companionshipsAPI.getMine(),
 };
 
-// Reports endpoints
 export const reportsAPI = {
-  getSummary: (from?: string, to?: string) => 
-    api.get('/reports/summary', { params: { from, to } }),
-  getStatistics: () => 
-    api.get('/reports/statistics'),
-  getLocations: () => 
-    api.get('/reports/locations'),
-  getElders: () => 
-    api.get('/reports/elders'),
-  getImpact: () => 
-    api.get('/reports/impact'),
+  getSummary: (from?: string, to?: string) =>
+    api.get('/api/reports/my-reports', { params: { from, to } }),
+  getStatistics: () => api.get('/api/reports/all-reports'),
+  getLocations: () => api.get('/api/reports/type/locations'),
+  getElders: () => api.get('/api/reports/type/elders'),
+  getImpact: () => api.get('/api/reports/type/impact'),
 };
 
-// Types
 export interface RegisterData {
   nome: string;
   email: string;
@@ -218,11 +495,14 @@ export interface ElderData {
 export interface VolunteerData {
   documentos_url?: string;
   disponibilidade?: string;
+  area_atuacao?: string;
   latitude?: number;
   longitude?: number;
 }
 
 export interface CompanionshipData {
+  idoso_id?: string;
+  voluntario_id?: string;
   atividade: string;
   descricao: string;
   data: string;
@@ -230,11 +510,13 @@ export interface CompanionshipData {
   latitude: number;
   longitude: number;
   local_descricao: string;
+  status?: string;
+  foto_comprovante_url?: string;
 }
 
 export interface ReviewData {
   destinatario_id: string;
-  tipo: 'idoso_para_voluntario' | 'voluntario_para_idoso';
+  tipo: 'idoso_para_voluntario' | 'voluntario_para_idoso' | 'voluntario' | 'idoso';
   nota: number;
   comentario?: string;
 }
@@ -267,6 +549,7 @@ export interface Volunteer {
   usuario?: User;
   documentos_url?: string;
   disponibilidade?: string;
+  area_atuacao?: string;
   latitude?: number;
   longitude?: number;
 }
@@ -285,6 +568,7 @@ export interface Companionship {
   longitude: number;
   local_descricao: string;
   status: 'pendente' | 'aceito' | 'em_andamento' | 'concluido' | 'cancelado';
+  foto_comprovante_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -298,6 +582,7 @@ export interface Review {
   tipo: string;
   nota: number;
   comentario?: string;
+  foto_comprovante_url?: string;
   data: string;
 }
 

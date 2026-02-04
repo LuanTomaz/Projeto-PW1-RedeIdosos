@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authAPI, User, RegisterData } from '@/lib/api';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { authAPI, RegisterData, User } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -12,6 +12,14 @@ interface AuthContextType {
   updateUser: (user: User) => void;
 }
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as { response?: { data?: { error?: string } } }).response;
+    if (response?.data?.error) return response.data.error;
+  }
+  return fallback;
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -20,10 +28,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for existing auth on mount
     const token = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('user');
-    
+
     if (token && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
@@ -35,74 +42,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback(async (email: string, senha: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      const response = await authAPI.login(email, senha);
-      const { token, user: userData } = response.data;
-      
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
-      
-      toast({
-        title: 'Login realizado com sucesso!',
-        description: `Bem-vindo(a), ${userData.nome}!`,
-      });
-      
-      return true;
-    } catch (error: any) {
-      toast({
-        title: 'Erro no login',
-        description: error.response?.data?.message || 'Credenciais inválidas',
-        variant: 'destructive',
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+  const login = useCallback(
+    async (email: string, senha: string): Promise<boolean> => {
+      try {
+        setIsLoading(true);
+        const response = await authAPI.login(email, senha);
+        const { token, user: userData } = response.data;
 
-  const register = useCallback(async (data: RegisterData): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      const response = await authAPI.register(data);
-      const { token, user: userData } = response.data;
-      
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
-      
-      toast({
-        title: 'Cadastro realizado com sucesso!',
-        description: `Bem-vindo(a) à Rede de Companhia, ${userData.nome}!`,
-      });
-      
-      return true;
-    } catch (error: any) {
-      toast({
-        title: 'Erro no cadastro',
-        description: error.response?.data?.message || 'Não foi possível criar a conta',
-        variant: 'destructive',
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+
+        toast({
+          title: 'Login realizado com sucesso!',
+          description: `Bem-vindo(a), ${userData.nome}!`,
+        });
+
+        return true;
+      } catch (error: unknown) {
+        toast({
+          title: 'Erro no login',
+          description: getErrorMessage(error, 'Credenciais invÃ¡lidas'),
+          variant: 'destructive',
+        });
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  const register = useCallback(
+    async (data: RegisterData): Promise<boolean> => {
+      try {
+        setIsLoading(true);
+        await authAPI.register(data);
+
+        const loginSuccess = await login(data.email, data.senha);
+        if (!loginSuccess) {
+          return false;
+        }
+
+        toast({
+          title: 'Cadastro realizado com sucesso!',
+          description: 'Bem-vindo(a) Ã  Rede de Companhia!',
+        });
+
+        return true;
+      } catch (error: unknown) {
+        toast({
+          title: 'Erro no cadastro',
+          description: getErrorMessage(error, 'NÃ£o foi possÃ­vel criar a conta'),
+          variant: 'destructive',
+        });
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [login, toast]
+  );
 
   const logout = useCallback(async () => {
     try {
       await authAPI.logout();
     } catch {
-      // Ignore logout errors
+      // JWT is stateless, so local cleanup is enough.
     } finally {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
       setUser(null);
       toast({
         title: 'Logout realizado',
-        description: 'Até logo!',
+        description: 'AtÃ© logo!',
       });
     }
   }, [toast]);

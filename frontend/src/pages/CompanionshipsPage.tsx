@@ -1,38 +1,22 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Search,
-  Plus,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  MapPin,
   Calendar,
-  Clock,
-  User,
   CheckCircle2,
-  XCircle,
-  AlertCircle,
+  Clock,
   Eye,
+  MapPin,
+  MoreHorizontal,
+  Plus,
+  Search,
+  User,
+  XCircle,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -41,138 +25,114 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface MockCompanionship {
-  id: string;
-  idoso: { nome: string; foto?: string };
-  voluntario?: { nome: string; foto?: string };
-  atividade: string;
-  descricao: string;
-  data: string;
-  hora: string;
-  latitude: number;
-  longitude: number;
-  local_descricao: string;
-  status: 'pendente' | 'aceito' | 'em_andamento' | 'concluido' | 'cancelado';
-}
-
-const mockCompanionships: MockCompanionship[] = [
-  {
-    id: '1',
-    idoso: { nome: 'Maria Silva' },
-    voluntario: { nome: 'João Santos' },
-    atividade: 'Caminhada no parque',
-    descricao: 'Caminhada leve de 30 minutos no parque',
-    data: '2026-02-05',
-    hora: '09:00',
-    latitude: -23.550520,
-    longitude: -46.633308,
-    local_descricao: 'Parque Ibirapuera - Portão 3',
-    status: 'aceito',
-  },
-  {
-    id: '2',
-    idoso: { nome: 'José Santos' },
-    atividade: 'Ajuda com tecnologia',
-    descricao: 'Preciso de ajuda para usar o celular',
-    data: '2026-02-06',
-    hora: '14:00',
-    latitude: -23.561414,
-    longitude: -46.656012,
-    local_descricao: 'Residência do idoso',
-    status: 'pendente',
-  },
-  {
-    id: '3',
-    idoso: { nome: 'Ana Costa' },
-    voluntario: { nome: 'Carlos Lima' },
-    atividade: 'Ida ao mercado',
-    descricao: 'Acompanhar na ida ao supermercado',
-    data: '2026-02-04',
-    hora: '10:00',
-    latitude: -23.553170,
-    longitude: -46.658620,
-    local_descricao: 'Supermercado Extra - Av. Paulista',
-    status: 'concluido',
-  },
-  {
-    id: '4',
-    idoso: { nome: 'Pedro Oliveira' },
-    atividade: 'Conversa',
-    descricao: 'Apenas alguém para conversar',
-    data: '2026-02-07',
-    hora: '16:00',
-    latitude: -23.562850,
-    longitude: -46.669200,
-    local_descricao: 'Praça da República',
-    status: 'pendente',
-  },
-  {
-    id: '5',
-    idoso: { nome: 'Lucia Ferreira' },
-    voluntario: { nome: 'Ana Costa' },
-    atividade: 'Consulta médica',
-    descricao: 'Acompanhar em consulta no hospital',
-    data: '2026-02-03',
-    hora: '08:00',
-    latitude: -23.550000,
-    longitude: -46.640000,
-    local_descricao: 'Hospital das Clínicas',
-    status: 'em_andamento',
-  },
-];
+import { useToast } from '@/hooks/use-toast';
+import { companionshipsAPI, Companionship } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   pendente: { label: 'Pendente', color: 'status-pendente', icon: Clock },
   aceito: { label: 'Aceito', color: 'status-aceito', icon: CheckCircle2 },
-  em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
+  em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700', icon: Clock },
   concluido: { label: 'Concluído', color: 'status-concluido', icon: CheckCircle2 },
   cancelado: { label: 'Cancelado', color: 'status-cancelado', icon: XCircle },
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as { response?: { data?: { error?: string } } }).response;
+    if (response?.data?.error) return response.data.error;
+  }
+  return fallback;
 };
 
 export default function CompanionshipsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedCompanionship, setSelectedCompanionship] = useState<MockCompanionship | null>(null);
+  const [selectedCompanionship, setSelectedCompanionship] = useState<Companionship | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const filteredCompanionships = mockCompanionships.filter((comp) => {
-    const matchesSearch = 
-      comp.idoso.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      comp.atividade.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      comp.local_descricao.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || comp.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
+  const { data: companionships = [], isLoading } = useQuery({
+    queryKey: ['companionships', user?.papel],
+    queryFn: async () => {
+      if (user?.papel === 'idoso' || user?.papel === 'voluntario') {
+        return (await companionshipsAPI.getMine()).data;
+      }
+      return (await companionshipsAPI.getAll()).data;
+    },
   });
 
-  const handleAccept = (comp: MockCompanionship) => {
-    toast({
-      title: 'Solicitação aceita!',
-      description: `Você aceitou a solicitação de ${comp.idoso.nome}.`,
+  const acceptMutation = useMutation({
+    mutationFn: (id: string) => companionshipsAPI.accept(id),
+    onSuccess: () => {
+      toast({ title: 'Solicitação aceita com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['companionships'] });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Não foi possível aceitar',
+        description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      companionshipsAPI.updateStatus(id, status),
+    onSuccess: () => {
+      toast({ title: 'Status atualizado com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['companionships'] });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Não foi possível atualizar o status',
+        description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const filteredCompanionships = useMemo(() => {
+    return companionships.filter((comp) => {
+      const elderName = comp.idoso?.usuario?.nome || '';
+      const matchesSearch =
+        elderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        comp.atividade.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        comp.local_descricao.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || comp.status === statusFilter;
+      return matchesSearch && matchesStatus;
     });
+  }, [companionships, searchQuery, statusFilter]);
+
+  const handleAccept = (comp: Companionship) => {
+    acceptMutation.mutate(comp.id);
   };
 
-  const handleComplete = (comp: MockCompanionship) => {
-    toast({
-      title: 'Atividade concluída!',
-      description: 'A atividade foi marcada como concluída.',
-    });
+  const handleComplete = (comp: Companionship) => {
+    updateStatusMutation.mutate({ id: comp.id, status: 'concluido' });
   };
 
-  const handleCancel = (comp: MockCompanionship) => {
-    toast({
-      title: 'Solicitação cancelada',
-      description: 'A solicitação foi cancelada.',
-      variant: 'destructive',
-    });
+  const handleCancel = (comp: Companionship) => {
+    updateStatusMutation.mutate({ id: comp.id, status: 'cancelado' });
   };
 
   return (
@@ -180,34 +140,37 @@ export default function CompanionshipsPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Companhias</h1>
-          <p className="text-muted-foreground mt-1">Gerencie as solicitações de companhia</p>
+          <p className="mt-1 text-muted-foreground">Gerencie as solicitações de companhia</p>
         </div>
         {(user?.papel === 'idoso' || user?.papel === 'ong') && (
           <Button>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="mr-2 h-4 w-4" />
             Nova Solicitação
           </Button>
         )}
       </motion.div>
 
-      {/* Stats */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 md:grid-cols-5 gap-4"
+        className="grid grid-cols-2 gap-4 md:grid-cols-5"
       >
         {Object.entries(statusConfig).map(([status, config]) => {
-          const count = mockCompanionships.filter(c => c.status === status).length;
+          const count = companionships.filter((item) => item.status === status).length;
           return (
-            <Card key={status} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter(status)}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={cn('p-2 rounded-full', config.color.replace('text-', 'bg-').split(' ')[0])}>
-                  <config.icon className={cn('w-5 h-5', config.color.split(' ')[1])} />
+            <Card
+              key={status}
+              className="cursor-pointer transition-shadow hover:shadow-md"
+              onClick={() => setStatusFilter(status)}
+            >
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className={cn('rounded-full p-2', config.color.replace('text-', 'bg-').split(' ')[0])}>
+                  <config.icon className={cn('h-5 w-5', config.color.split(' ')[1])} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{count}</p>
@@ -219,7 +182,6 @@ export default function CompanionshipsPage() {
         })}
       </motion.div>
 
-      {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -227,9 +189,9 @@ export default function CompanionshipsPage() {
       >
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por atividade, idoso ou local..."
                   value={searchQuery}
@@ -255,161 +217,169 @@ export default function CompanionshipsPage() {
         </Card>
       </motion.div>
 
-      {/* Companionships List */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
         className="space-y-4"
       >
-        {filteredCompanionships.map((comp, index) => {
-          const statusInfo = statusConfig[comp.status];
-          return (
-            <motion.div
-              key={comp.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                    {/* Activity Info */}
-                    <div className="flex-1">
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-xl bg-primary/10">
-                          <Calendar className="w-6 h-6 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-lg">{comp.atividade}</h3>
-                          <p className="text-muted-foreground text-sm mt-1">{comp.descricao}</p>
-                          
-                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span>{new Date(comp.data).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              <span>{comp.hora}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <span className="truncate max-w-[200px]">{comp.local_descricao}</span>
+        {isLoading && <p className="py-10 text-center text-muted-foreground">Carregando solicitações...</p>}
+
+        {!isLoading &&
+          filteredCompanionships.map((comp, index) => {
+            const statusInfo = statusConfig[comp.status];
+            const elderName = comp.idoso?.usuario?.nome || 'Idoso';
+            const volunteerName = comp.voluntario?.usuario?.nome;
+            return (
+              <motion.div
+                key={comp.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="transition-shadow hover:shadow-md">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                      <div className="flex-1">
+                        <div className="flex items-start gap-4">
+                          <div className="rounded-xl bg-primary/10 p-3">
+                            <Calendar className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-lg font-semibold">{comp.atividade}</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">{comp.descricao}</p>
+                            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                <span>{new Date(comp.data).toLocaleDateString('pt-BR')}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>{comp.hora}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <MapPin className="h-4 w-4 text-muted-foreground" />
+                                <span className="max-w-[200px] truncate">{comp.local_descricao}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Participants */}
-                    <div className="flex items-center gap-4 lg:border-l lg:pl-4">
-                      <div className="flex flex-col items-center gap-1">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={comp.idoso.foto} />
-                          <AvatarFallback className="bg-teal-100 text-teal-700 text-sm">
-                            {comp.idoso.nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-muted-foreground">Idoso</span>
-                      </div>
-                      
-                      {comp.voluntario ? (
+                      <div className="flex items-center gap-4 lg:border-l lg:pl-4">
                         <div className="flex flex-col items-center gap-1">
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={comp.voluntario.foto} />
-                            <AvatarFallback className="bg-orange-100 text-orange-700 text-sm">
-                              {comp.voluntario.nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={comp.idoso?.usuario?.foto_perfil_url} />
+                            <AvatarFallback className="bg-teal-100 text-sm text-teal-700">
+                              {elderName
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')
+                                .slice(0, 2)}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-xs text-muted-foreground">Voluntário</span>
+                          <span className="text-xs text-muted-foreground">Idoso</span>
                         </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="w-10 h-10 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-                            <User className="w-5 h-5 text-muted-foreground/50" />
+
+                        {volunteerName ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={comp.voluntario?.usuario?.foto_perfil_url} />
+                              <AvatarFallback className="bg-orange-100 text-sm text-orange-700">
+                                {volunteerName
+                                  .split(' ')
+                                  .map((n) => n[0])
+                                  .join('')
+                                  .slice(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs text-muted-foreground">Voluntário</span>
                           </div>
-                          <span className="text-xs text-muted-foreground">Aguardando</span>
-                        </div>
-                      )}
-                    </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30">
+                              <User className="h-5 w-5 text-muted-foreground/50" />
+                            </div>
+                            <span className="text-xs text-muted-foreground">Aguardando</span>
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Status & Actions */}
-                    <div className="flex items-center gap-3 lg:border-l lg:pl-4">
-                      <Badge className={cn('font-medium', statusInfo.color)}>
-                        <statusInfo.icon className="w-3 h-3 mr-1" />
-                        {statusInfo.label}
-                      </Badge>
+                      <div className="flex items-center gap-3 lg:border-l lg:pl-4">
+                        <Badge className={cn('font-medium', statusInfo.color)}>
+                          <statusInfo.icon className="mr-1 h-3 w-3" />
+                          {statusInfo.label}
+                        </Badge>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedCompanionship(comp);
-                            setIsDetailDialogOpen(true);
-                          }}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Detalhes
-                          </DropdownMenuItem>
-                          {comp.status === 'pendente' && user?.papel === 'voluntario' && (
-                            <DropdownMenuItem onClick={() => handleAccept(comp)}>
-                              <CheckCircle2 className="w-4 h-4 mr-2" />
-                              Aceitar
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedCompanionship(comp);
+                                setIsDetailDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver Detalhes
                             </DropdownMenuItem>
-                          )}
-                          {(comp.status === 'aceito' || comp.status === 'em_andamento') && (
-                            <DropdownMenuItem onClick={() => handleComplete(comp)}>
-                              <CheckCircle2 className="w-4 h-4 mr-2" />
-                              Marcar como Concluído
-                            </DropdownMenuItem>
-                          )}
-                          {comp.status !== 'concluido' && comp.status !== 'cancelado' && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleCancel(comp)}
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Cancelar
+                            {comp.status === 'pendente' && user?.papel === 'voluntario' && (
+                              <DropdownMenuItem onClick={() => handleAccept(comp)}>
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Aceitar
                               </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            )}
+                            {(comp.status === 'aceito' || comp.status === 'em_andamento') && (
+                              <DropdownMenuItem onClick={() => handleComplete(comp)}>
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Marcar como Concluído
+                              </DropdownMenuItem>
+                            )}
+                            {comp.status !== 'concluido' && comp.status !== 'cancelado' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive" onClick={() => handleCancel(comp)}>
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  Cancelar
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
 
-        {filteredCompanionships.length === 0 && (
-          <div className="text-center py-12">
+        {!isLoading && filteredCompanionships.length === 0 && (
+          <div className="py-12 text-center">
             <p className="text-muted-foreground">Nenhuma solicitação encontrada</p>
           </div>
         )}
       </motion.div>
 
-      {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{selectedCompanionship?.atividade}</DialogTitle>
             <DialogDescription>{selectedCompanionship?.descricao}</DialogDescription>
           </DialogHeader>
-          
+
           {selectedCompanionship && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Data</p>
-                  <p className="font-medium">{new Date(selectedCompanionship.data).toLocaleDateString('pt-BR')}</p>
+                  <p className="font-medium">
+                    {new Date(selectedCompanionship.data).toLocaleDateString('pt-BR')}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Horário</p>
@@ -420,42 +390,14 @@ export default function CompanionshipsPage() {
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Local</p>
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-primary mt-0.5" />
+                  <MapPin className="mt-0.5 h-4 w-4 text-primary" />
                   <div>
                     <p className="font-medium">{selectedCompanionship.local_descricao}</p>
-                    <p className="text-xs text-muted-foreground font-mono mt-1">
-                      {selectedCompanionship.latitude.toFixed(6)}, {selectedCompanionship.longitude.toFixed(6)}
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">
+                      {selectedCompanionship.latitude.toFixed(6)},{' '}
+                      {selectedCompanionship.longitude.toFixed(6)}
                     </p>
                   </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Idoso</p>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="w-8 h-8">
-                      <AvatarFallback className="bg-teal-100 text-teal-700 text-xs">
-                        {selectedCompanionship.idoso.nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <p className="font-medium">{selectedCompanionship.idoso.nome}</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Voluntário</p>
-                  {selectedCompanionship.voluntario ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="bg-orange-100 text-orange-700 text-xs">
-                          {selectedCompanionship.voluntario.nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <p className="font-medium">{selectedCompanionship.voluntario.nome}</p>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground italic">Aguardando voluntário</p>
-                  )}
                 </div>
               </div>
 

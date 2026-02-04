@@ -173,7 +173,7 @@ export default function Register() {
                       <button
                         key={role.value}
                         type="button"
-                        onClick={() => setValue('tipo_cadastro', role.value as any)}
+                        onClick={() => setValue('tipo_cadastro', role.value as RegisterFormData['tipo_cadastro'])}
                         className={`
                           p-3 rounded-xl border-2 transition-all text-center
                           ${

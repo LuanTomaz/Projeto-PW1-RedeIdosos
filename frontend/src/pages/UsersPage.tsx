@@ -1,37 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Search,
-  Plus,
-  MoreHorizontal,
   Edit,
-  Trash2,
-  Shield,
+  MoreHorizontal,
+  Plus,
+  Search,
   ShieldCheck,
-  ShieldX,
+  Trash2,
   UserCheck,
   UserX,
-  Filter,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -40,16 +22,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { usersAPI, User } from '@/lib/api';
+import { User, usersAPI } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrador',
-  gestor_publico: 'Gestor Público',
+  gestor_publico: 'Gestor PÃºblico',
   ong: 'ONG',
-  voluntario: 'Voluntário',
+  voluntario: 'VoluntÃ¡rio',
   idoso: 'Idoso',
 };
 
@@ -61,17 +57,13 @@ const roleColors: Record<string, string> = {
   idoso: 'role-idoso',
 };
 
-// Mock data for demonstration
-const mockUsers: User[] = [
-  { id: '1', nome: 'Maria Silva', email: 'maria@email.com', papel: 'idoso', verificado: true, ativo: true, telefone: '(11) 99999-1111' },
-  { id: '2', nome: 'João Santos', email: 'joao@email.com', papel: 'voluntario', verificado: true, ativo: true, telefone: '(11) 99999-2222' },
-  { id: '3', nome: 'Ana Costa', email: 'ana@email.com', papel: 'voluntario', verificado: false, ativo: true, telefone: '(11) 99999-3333' },
-  { id: '4', nome: 'Carlos Oliveira', email: 'carlos@email.com', papel: 'ong', verificado: true, ativo: true, telefone: '(11) 99999-4444' },
-  { id: '5', nome: 'Fernanda Lima', email: 'fernanda@email.com', papel: 'gestor_publico', verificado: true, ativo: true, telefone: '(11) 99999-5555' },
-  { id: '6', nome: 'Pedro Souza', email: 'pedro@email.com', papel: 'idoso', verificado: true, ativo: false, telefone: '(11) 99999-6666' },
-  { id: '7', nome: 'Lucia Ferreira', email: 'lucia@email.com', papel: 'voluntario', verificado: true, ativo: true, telefone: '(11) 99999-7777' },
-  { id: '8', nome: 'Roberto Almeida', email: 'roberto@email.com', papel: 'admin', verificado: true, ativo: true, telefone: '(11) 99999-8888' },
-];
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as { response?: { data?: { error?: string } } }).response;
+    if (response?.data?.error) return response.data.error;
+  }
+  return fallback;
+};
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,47 +73,79 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Using mock data for now - replace with API call
-  const users = mockUsers;
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = 
-      user.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesRole = roleFilter === 'all' || user.papel === roleFilter;
-    const matchesStatus = 
-      statusFilter === 'all' || 
-      (statusFilter === 'active' && user.ativo) || 
-      (statusFilter === 'inactive' && !user.ativo);
-
-    return matchesSearch && matchesRole && matchesStatus;
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['users', roleFilter],
+    queryFn: async () => {
+      const response = await usersAPI.getAll(roleFilter === 'all' ? undefined : roleFilter);
+      return response.data;
+    },
   });
 
-  const handleStatusToggle = (user: User) => {
-    toast({
-      title: user.ativo ? 'Usuário desativado' : 'Usuário ativado',
-      description: `${user.nome} foi ${user.ativo ? 'desativado' : 'ativado'} com sucesso.`,
-    });
-  };
-
-  const handleVerify = (user: User) => {
-    toast({
-      title: 'Usuário verificado',
-      description: `${user.nome} foi verificado com sucesso.`,
-    });
-  };
-
-  const handleDelete = () => {
-    if (selectedUser) {
+  const verifyUserMutation = useMutation({
+    mutationFn: (id: string) => usersAPI.validate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast({ title: 'UsuÃ¡rio verificado com sucesso' });
+    },
+    onError: (error: unknown) => {
       toast({
-        title: 'Usuário excluído',
-        description: `${selectedUser.nome} foi excluído com sucesso.`,
+        title: 'Erro ao verificar usuÃ¡rio',
+        description: getErrorMessage(error, 'Tente novamente'),
         variant: 'destructive',
+      });
+    },
+  });
+
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: (id: string) => usersAPI.updateStatus(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast({ title: 'Status do usuÃ¡rio atualizado' });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Erro ao atualizar status',
+        description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const matchesSearch =
+        user.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesRole = roleFilter === 'all' || user.papel === roleFilter;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && user.ativo) ||
+        (statusFilter === 'inactive' && !user.ativo);
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, searchQuery, roleFilter, statusFilter]);
+
+  const handleDelete = async () => {
+    if (!selectedUser) return;
+    try {
+      await usersAPI.delete(selectedUser.id);
+      toast({
+        title: 'UsuÃ¡rio removido',
+        description: `${selectedUser.nome} foi removido com sucesso.`,
       });
       setIsDeleteDialogOpen(false);
       setSelectedUser(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao remover usuÃ¡rio',
+        description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -130,19 +154,18 @@ export default function UsersPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Usuários</h1>
-          <p className="text-muted-foreground mt-1">Gerencie todos os usuários da plataforma</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">UsuÃ¡rios</h1>
+          <p className="mt-1 text-muted-foreground">Gerencie todos os usuÃ¡rios da plataforma</p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Usuário
+          <Plus className="mr-2 h-4 w-4" />
+          Novo UsuÃ¡rio
         </Button>
       </motion.div>
 
-      {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -150,9 +173,9 @@ export default function UsersPage() {
       >
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome ou email..."
                   value={searchQuery}
@@ -165,11 +188,11 @@ export default function UsersPage() {
                   <SelectValue placeholder="Filtrar por papel" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os papéis</SelectItem>
+                  <SelectItem value="all">Todos os papÃ©is</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="gestor_publico">Gestor Público</SelectItem>
+                  <SelectItem value="gestor_publico">Gestor PÃºblico</SelectItem>
                   <SelectItem value="ong">ONG</SelectItem>
-                  <SelectItem value="voluntario">Voluntário</SelectItem>
+                  <SelectItem value="voluntario">VoluntÃ¡rio</SelectItem>
                   <SelectItem value="idoso">Idoso</SelectItem>
                 </SelectContent>
               </Select>
@@ -188,7 +211,6 @@ export default function UsersPage() {
         </Card>
       </motion.div>
 
-      {/* Users List */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -196,112 +218,120 @@ export default function UsersPage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="font-display">Lista de Usuários</CardTitle>
-            <CardDescription>{filteredUsers.length} usuário(s) encontrado(s)</CardDescription>
+            <CardTitle className="font-display">Lista de UsuÃ¡rios</CardTitle>
+            <CardDescription>{filteredUsers.length} usuÃ¡rio(s) encontrado(s)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {filteredUsers.map((user, index) => (
-                <motion.div
-                  key={user.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
-                >
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={user.foto_perfil_url} />
-                    <AvatarFallback className="bg-primary text-primary-foreground font-medium">
-                      {user.nome.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+            {isLoading ? (
+              <p className="py-10 text-center text-muted-foreground">Carregando usuÃ¡rios...</p>
+            ) : (
+              <div className="space-y-3">
+                {filteredUsers.map((user, index) => (
+                  <motion.div
+                    key={user.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center gap-4 rounded-xl bg-muted/30 p-4 transition-colors hover:bg-muted/50"
+                  >
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={user.foto_perfil_url} />
+                      <AvatarFallback className="bg-primary font-medium text-primary-foreground">
+                        {user.nome
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">{user.nome}</p>
-                      {user.verificado && (
-                        <ShieldCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
-                      )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-medium">{user.nome}</p>
+                        {user.verificado && <ShieldCheck className="h-4 w-4 flex-shrink-0 text-green-600" />}
+                      </div>
+                      <p className="truncate text-sm text-muted-foreground">{user.email}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-                  </div>
 
-                  <div className="hidden sm:flex items-center gap-3">
-                    <span className={cn('text-xs px-2.5 py-1 rounded-full font-medium', roleColors[user.papel])}>
-                      {roleLabels[user.papel]}
-                    </span>
-                    <span className={cn(
-                      'text-xs px-2.5 py-1 rounded-full font-medium',
-                      user.ativo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    )}>
-                      {user.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      {!user.verificado && (
-                        <DropdownMenuItem onClick={() => handleVerify(user)}>
-                          <ShieldCheck className="w-4 h-4 mr-2" />
-                          Verificar
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => handleStatusToggle(user)}>
-                        {user.ativo ? (
-                          <>
-                            <UserX className="w-4 h-4 mr-2" />
-                            Desativar
-                          </>
-                        ) : (
-                          <>
-                            <UserCheck className="w-4 h-4 mr-2" />
-                            Ativar
-                          </>
+                    <div className="hidden items-center gap-3 sm:flex">
+                      <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', roleColors[user.papel])}>
+                        {roleLabels[user.papel]}
+                      </span>
+                      <span
+                        className={cn(
+                          'rounded-full px-2.5 py-1 text-xs font-medium',
+                          user.ativo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                         )}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setIsDeleteDialogOpen(true);
-                        }}
                       >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </motion.div>
-              ))}
+                        {user.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </div>
 
-              {filteredUsers.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Nenhum usuário encontrado</p>
-                </div>
-              )}
-            </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        {!user.verificado && (
+                          <DropdownMenuItem onClick={() => verifyUserMutation.mutate(user.id)}>
+                            <ShieldCheck className="mr-2 h-4 w-4" />
+                            Verificar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => toggleUserStatusMutation.mutate(user.id)}>
+                          {user.ativo ? (
+                            <>
+                              <UserX className="mr-2 h-4 w-4" />
+                              Desativar
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              Ativar
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </motion.div>
+                ))}
+
+                {filteredUsers.length === 0 && (
+                  <div className="py-12 text-center">
+                    <p className="text-muted-foreground">Nenhum usuÃ¡rio encontrado</p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogTitle>Confirmar exclusÃ£o</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir o usuário <strong>{selectedUser?.nome}</strong>? 
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o usuÃ¡rio <strong>{selectedUser?.nome}</strong>? Esta aÃ§Ã£o
+              nÃ£o pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -311,6 +341,20 @@ export default function UsersPage() {
             <Button variant="destructive" onClick={handleDelete}>
               Excluir
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo usuÃ¡rio</DialogTitle>
+            <DialogDescription>
+              A criaÃ§Ã£o pelo painel ainda nÃ£o estÃ¡ disponÃ­vel nesta tela.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setIsCreateDialogOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
