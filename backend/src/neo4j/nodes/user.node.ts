@@ -4,10 +4,9 @@ export const createUserNode = async (userId: string) => {
   const session = getNeo4jDriver().session();
 
   try {
-    await session.run(
-      'MERGE (u:User { id: $id })',
-      { id: userId }
-    );
+    await session.executeWrite(async (tx) => {
+      await tx.run('MERGE (u:User { id: $id })', { id: userId });
+    });
   } finally {
     await session.close();
   }

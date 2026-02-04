@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import * as ReviewService from "../services/review.service";
 import { z } from "zod";
 import cloudinary from "../config/cloudinary";
+import { createUserNode } from "../neo4j/nodes/user.node";
+import { createReviewRelation } from "../neo4j/relations/review.relation";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -46,6 +48,19 @@ export const createReview = async (req: AuthRequest, res: Response) => {
       data: new Date(),
       foto_comprovante_url: fotoUrl
     });
+
+    // Neo4j
+    try {
+      await createUserNode(usuario_id);
+      await createUserNode(validated.destinatario_id);
+      await createReviewRelation(usuario_id, validated.destinatario_id, {
+        nota: validated.nota,
+        tipo: validated.tipo,
+        data: review.data ?? new Date(),
+      });
+    } catch (e) {
+      console.error('Neo4j createReview error:', e);
+    }
 
     return res.status(201).json(review);
   } catch (err: any) {

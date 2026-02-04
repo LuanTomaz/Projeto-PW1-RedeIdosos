@@ -3,6 +3,7 @@ import * as VolunteerService from "../services/volunteer.service";
 import { z } from "zod";
 import { User } from "../models/User";
 import { Volunteer } from "../models/Volunteer";
+import { deleteNodeById } from "../neo4j/utils/delete";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -66,6 +67,10 @@ export const deleteVolunteer = async (req: Request, res: Response) => {
 
     // Remove o usuário associado
     await User.findByIdAndDelete(volunteer.usuario_id);
+
+    // Neo4j: remove nodes
+    await deleteNodeById('Volunteer', id);
+    await deleteNodeById('User', volunteer.usuario_id.toString());
 
     // Remove o voluntário
     await Volunteer.findByIdAndDelete(id);

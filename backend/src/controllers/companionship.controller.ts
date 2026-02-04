@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import * as CompanionshipService from "../services/companionship.service";
 import { z } from "zod";
 import cloudinary from "../config/cloudinary";
+import { createCompanionshipNode, updateCompanionshipStatusNode } from "../neo4j/nodes/companionship.node";
+import { createElderNode } from "../neo4j/nodes/elder.node";
+import { createVolunteerNode } from "../neo4j/nodes/volunteer.node";
+import { createCompanionshipRelations, createElderRequestCompanionship } from "../neo4j/relations/companionship.relation";
+import { deleteNodeById } from "../neo4j/utils/delete";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -36,6 +41,17 @@ export const createCompanionship = async (req: Request, res: Response) => {
             voluntario_id: validated.voluntario_id as any,
             data: new Date(validated.data)
         });
+
+        // Neo4j
+        const companionshipId = companionship._id.toString();
+        await createCompanionshipNode(companionshipId, companionship.status, companionship.data);
+        await createElderNode(validated.idoso_id);
+        if (validated.voluntario_id) {
+            await createVolunteerNode(validated.voluntario_id);
+            await createCompanionshipRelations(validated.idoso_id, validated.voluntario_id, companionshipId);
+        } else {
+            await createElderRequestCompanionship(validated.idoso_id, companionshipId);
+        }
         res.status(201).json(companionship);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
@@ -68,6 +84,9 @@ export const deleteCompanionship = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
         await CompanionshipService.deleteCompanionship(id);
+
+        // Neo4j
+        await deleteNodeById('Companionship', id);
         return res.status(200).json({
             success: true,
             message: "Companhia deletada com sucesso.",
@@ -89,6 +108,23 @@ export const acceptCompanionship = async (req: AuthRequest, res: Response) => {
         }
 
         const companionship = await CompanionshipService.acceptCompanionship(companionshipId, voluntarioId);
+        if (!companionship) {
+            return res.status(404).json({ error: "Companhia não encontrada" });
+        }
+
+        // Neo4j
+        try {
+            const elderId = String((companionship as any).idoso_id);
+            const volId = String((companionship as any).voluntario_id);
+            if (elderId && volId) {
+                await createElderNode(elderId);
+                await createVolunteerNode(volId);
+                await createCompanionshipNode(companionshipId, companionship.status, companionship.data);
+                await createCompanionshipRelations(elderId, volId, companionshipId);
+            }
+        } catch (e) {
+            console.error('Neo4j acceptCompanionship error:', e);
+        }
         res.json(companionship);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
@@ -116,6 +152,21 @@ export const completeCompanionship = async (req: Request, res: Response) => {
             companionshipId,
             result.secure_url
         );
+
+        if (!companionship) {
+            return res.status(404).json({ error: "Companhia não encontrada" });
+        }
+
+        if (!companionship) {
+            return res.status(404).json({ error: "Companhia não encontrada" });
+        }
+
+        // Neo4j
+        try {
+            await updateCompanionshipStatusNode(companionshipId, companionship.status);
+        } catch (e) {
+            console.error('Neo4j completeCompanionship error:', e);
+        }
         res.json(companionship);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
@@ -133,6 +184,13 @@ export const updateCompanionshipStatus = async (req: AuthRequest, res: Response)
         }
 
         const companionship = await CompanionshipService.updateCompanionshipStatus(id, status);
+
+        // Neo4j
+        try {
+            await updateCompanionshipStatusNode(id, status);
+        } catch (e) {
+            console.error('Neo4j updateCompanionshipStatus error:', e);
+        }
         res.json(companionship);
     } catch (err: any) {
         res.status(400).json({ error: err.message });

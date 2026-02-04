@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as UserService from "../services/user.service";
 import { z } from "zod";
 import { User } from "../models/User";
+import { createUserNode } from "../neo4j/nodes/user.node";
 
 // Usando validação com Zod
 const createUserSchema = z.object({
@@ -17,6 +18,12 @@ export const createUser = async (req: Request, res: Response) => {
     const validated = createUserSchema.parse(req.body);
 
     const user = await UserService.createUser(validated);
+
+    // Neo4j: garante existencia do node do usuario
+    await createUserNode(user._id.toString());
+
+    // Neo4j: cria o node do usuario (id = user._id do Mongo)
+    await createUserNode(user._id.toString());
 
     res.status(201).json({
       message: "Usuário criado com sucesso. Complete seu cadastro.",

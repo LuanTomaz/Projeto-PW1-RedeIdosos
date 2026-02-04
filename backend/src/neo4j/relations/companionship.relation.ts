@@ -8,18 +8,43 @@ export const createCompanionshipRelations = async (
   const session = getNeo4jDriver().session();
 
   try {
-    await session.run(
-      `
-      MATCH (e:Elder { id: $elderId })
-      MATCH (v:Volunteer { id: $volunteerId })
-      MATCH (c:Companionship { id: $companionshipId })
+    await session.executeWrite(async (tx) => {
+      await tx.run(
+        `
+        MERGE (e:Elder { id: $elderId })
+        MERGE (v:Volunteer { id: $volunteerId })
+        MERGE (c:Companionship { id: $companionshipId })
 
-      MERGE (e)-[:REQUESTED]->(c)
-      MERGE (v)-[:PARTICIPATES_IN]->(c)
-      MERGE (v)-[:HELPED]->(e)
-      `,
-      { elderId, volunteerId, companionshipId }
-    );
+        MERGE (e)-[:REQUESTED]->(c)
+        MERGE (v)-[:PARTICIPATES_IN]->(c)
+        MERGE (v)-[:HELPED]->(e)
+        `,
+        { elderId, volunteerId, companionshipId }
+      );
+    });
+  } finally {
+    await session.close();
+  }
+};
+
+// Quando a companhia ainda nao tem voluntario atribuido
+export const createElderRequestCompanionship = async (
+  elderId: string,
+  companionshipId: string
+) => {
+  const session = getNeo4jDriver().session();
+
+  try {
+    await session.executeWrite(async (tx) => {
+      await tx.run(
+        `
+        MERGE (e:Elder { id: $elderId })
+        MERGE (c:Companionship { id: $companionshipId })
+        MERGE (e)-[:REQUESTED]->(c)
+        `,
+        { elderId, companionshipId }
+      );
+    });
   } finally {
     await session.close();
   }

@@ -7,6 +7,11 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { Auth } from "mongodb";
+import { createUserNode } from "../neo4j/nodes/user.node";
+import { createVolunteerNode } from "../neo4j/nodes/volunteer.node";
+import { relateUserToRole } from "../neo4j/relations/user-role.relation";
+import { createElderNode } from "../neo4j/nodes/elder.node";
+import { createOngNode } from "../neo4j/nodes/ong.node";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -130,6 +135,11 @@ export const createElderProfile = async (req: AuthRequest, res: Response) => {
             ativo: true,
         });
 
+        // Neo4j
+        await createUserNode(req.user.id);
+        await createElderNode(elder._id.toString());
+        await relateUserToRole(req.user.id, 'Elder', elder._id.toString());
+
         res.status(201).json(elder);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
@@ -171,6 +181,11 @@ export const createVolunteerProfile = async (req: AuthRequest, res: Response) =>
     await User.findByIdAndUpdate(req.user.id, {
       ativo: true,
     });
+
+    // Neo4j
+    await createUserNode(req.user.id);
+    await createVolunteerNode(volunteer._id.toString());
+    await relateUserToRole(req.user.id, 'Volunteer', volunteer._id.toString());
 
     res.status(201).json(volunteer);
   } catch (err: any) {
@@ -220,6 +235,11 @@ export const createOngProfile = async (req: AuthRequest, res: Response) => {
     await User.findByIdAndUpdate(user._id, {
       ativo: true,
     });
+
+    // Neo4j
+    await createUserNode(user._id.toString());
+    await createOngNode(ong._id.toString());
+    await relateUserToRole(user._id.toString(), 'Ong', ong._id.toString());
 
     res.status(201).json(ong);
   } catch (err: any) {

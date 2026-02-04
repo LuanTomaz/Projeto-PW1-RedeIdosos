@@ -3,6 +3,7 @@ import * as ElderService from "../services/elder.service";
 import * as UserService from "../services/user.service";
 import { z } from "zod";
 import mongoose from "mongoose";
+import { deleteNodeById } from "../neo4j/utils/delete";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -78,10 +79,15 @@ export const deleteElderController = async (req: Request, res: Response) => {
         // Deletar o idoso
         await ElderService.deleteElder(id);
 
+        // Neo4j: remove node do perfil
+        await deleteNodeById('Elder', id);
+
         // Deletar o usuário relacionado
         if (userId) {
             try {
                 await UserService.deleteUser(userId);
+                // Neo4j: remove node do usuario
+                await deleteNodeById('User', userId);
             } catch (err) {
                 console.error("Erro ao deletar o usuário:", err);
             }

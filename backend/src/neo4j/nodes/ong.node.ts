@@ -4,10 +4,9 @@ export const createOngNode = async (ongId: string) => {
   const session = getNeo4jDriver().session();
 
   try {
-    await session.run(
-      'MERGE (o:Ong { id: $id })',
-      { id: ongId }
-    );
+    await session.executeWrite(async (tx) => {
+      await tx.run('MERGE (o:Ong { id: $id })', { id: ongId });
+    });
   } finally {
     await session.close();
   }

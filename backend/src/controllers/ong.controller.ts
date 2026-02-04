@@ -3,6 +3,7 @@ import * as OngService from "../services/ong.service";
 import * as UserService from "../services/user.service";
 import { z } from "zod";
 import mongoose from "mongoose";
+import { deleteNodeById } from "../neo4j/utils/delete";
 
 interface AuthRequest extends Request {
     user?: any;
@@ -80,11 +81,17 @@ export const deleteOng = async (req: Request, res: Response) => {
     
             // Deletar o idoso
             await OngService.deleteOng(id);
+
+            // Neo4j: remove node do perfil
+            await deleteNodeById('Ong', id);
     
             // Deletar o usuário relacionado
             if (userId) {
                 try {
                     await UserService.deleteUser(userId);
+
+                    // Neo4j: remove node do usuario
+                    await deleteNodeById('User', userId);
                 } catch (err) {
                     console.error("Erro ao deletar o usuário:", err);
                 }

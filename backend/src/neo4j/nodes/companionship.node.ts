@@ -8,16 +8,36 @@ export const createCompanionshipNode = async (
   const session = getNeo4jDriver().session();
 
   try {
-    const result = await session.run(
-      `
-      MERGE (c:Companionship { id: $id })
-      SET c.status = $status,
-          c.data = $data
-      `,
-      { id, status, data }
+    const result = await session.executeWrite(async (tx) =>
+      tx.run(
+        `
+        MERGE (c:Companionship { id: $id })
+        SET c.status = $status,
+            c.data = datetime($data)
+        `,
+        { id, status, data: data.toISOString() }
+      )
     );
 
-    console.log("Neo4j result:", result.summary.counters.updates());
+    console.log('Neo4j updates:', result.summary.counters.updates());
+  } finally {
+    await session.close();
+  }
+};
+
+export const updateCompanionshipStatusNode = async (id: string, status: string) => {
+  const session = getNeo4jDriver().session();
+
+  try {
+    await session.executeWrite(async (tx) => {
+      await tx.run(
+        `
+        MATCH (c:Companionship { id: $id })
+        SET c.status = $status
+        `,
+        { id, status }
+      );
+    });
   } finally {
     await session.close();
   }
