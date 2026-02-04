@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base configuration
-const API_BASE_URL = 'https://projeto-pw1-redeidosos.onrender.com';
+const API_BASE_URL = 'http://localhost:3000';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -195,7 +195,7 @@ export interface RegisterData {
   nome: string;
   email: string;
   senha: string;
-  papel: 'admin' | 'gestor_publico' | 'ong' | 'voluntario' | 'idoso';
+  tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
   telefone?: string;
 }
 

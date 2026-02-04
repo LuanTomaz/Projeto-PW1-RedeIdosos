@@ -18,7 +18,7 @@ const registerSchema = z.object({
   senha: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
   confirmarSenha: z.string(),
   telefone: z.string().optional(),
-  papel: z.enum(['voluntario', 'idoso', 'ong'] as const, {
+  tipo_cadastro: z.enum(['voluntario', 'idoso', 'ong'] as const, {
     required_error: 'Selecione um tipo de conta',
   }),
 }).refine((data) => data.senha === data.confirmarSenha, {
@@ -66,11 +66,11 @@ export default function Register() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      papel: 'voluntario',
+      tipo_cadastro: 'voluntario',
     },
   });
 
-  const selectedRole = watch('papel');
+  const selectedRole = watch('tipo_cadastro');
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
@@ -78,7 +78,7 @@ export default function Register() {
       nome: data.nome,
       email: data.email,
       senha: data.senha,
-      papel: data.papel,
+      tipo_cadastro: data.tipo_cadastro,
       telefone: data.telefone,
     });
     setIsLoading(false);
@@ -173,7 +173,7 @@ export default function Register() {
                       <button
                         key={role.value}
                         type="button"
-                        onClick={() => setValue('papel', role.value as any)}
+                        onClick={() => setValue('tipo_cadastro', role.value as any)}
                         className={`
                           p-3 rounded-xl border-2 transition-all text-center
                           ${
@@ -188,8 +188,8 @@ export default function Register() {
                       </button>
                     ))}
                   </div>
-                  {errors.papel && (
-                    <p className="text-sm text-destructive">{errors.papel.message}</p>
+                  {errors.tipo_cadastro && (
+                    <p className="text-sm text-destructive">{errors.tipo_cadastro.message}</p>
                   )}
                 </div>
 
