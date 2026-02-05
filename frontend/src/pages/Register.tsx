@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatCnpj, formatPhone } from '@/lib/format';
 
 const registerSchema = z.object({
   nome: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres'),
@@ -36,6 +37,33 @@ const registerSchema = z.object({
       message: 'CNPJ obrigatorio para ONG',
       path: ['cnpj'],
     });
+  }
+  if (data.tipo_cadastro === 'ong' && data.cnpj) {
+    const digits = data.cnpj.replace(/\D/g, '');
+    if (digits.length !== 14) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CNPJ deve ter 14 dígitos',
+        path: ['cnpj'],
+      });
+    }
+  }
+  if (data.tipo_cadastro === 'ong' && !data.telefone?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Telefone obrigatorio para ONG',
+      path: ['telefone'],
+    });
+  }
+  if (data.telefone) {
+    const digits = data.telefone.replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 11) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Telefone deve ter 10 ou 11 dígitos',
+        path: ['telefone'],
+      });
+    }
   }
 });
 
@@ -234,7 +262,10 @@ export default function Register() {
                         id="cnpj"
                         placeholder="00.000.000/0000-00"
                         className="pl-10"
-                        {...register('cnpj')}
+                        maxLength={18}
+                        {...register('cnpj', {
+                          onChange: (e) => setValue('cnpj', formatCnpj(e.target.value)),
+                        })}
                       />
                     </div>
                     {errors.cnpj && (
@@ -261,16 +292,24 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="telefone">Telefone (opcional)</Label>
+                  <Label htmlFor="telefone">
+                    {selectedRole === 'ong' ? 'Telefone (obrigatorio)' : 'Telefone (opcional)'}
+                  </Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       id="telefone"
                       placeholder="(00) 00000-0000"
                       className="pl-10"
-                      {...register('telefone')}
+                      maxLength={15}
+                      {...register('telefone', {
+                        onChange: (e) => setValue('telefone', formatPhone(e.target.value)),
+                      })}
                     />
                   </div>
+                  {errors.telefone && (
+                    <p className="text-sm text-destructive">{errors.telefone.message}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -347,7 +386,5 @@ export default function Register() {
     </div>
   );
 }
-
-
 
 

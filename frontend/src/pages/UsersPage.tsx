@@ -99,7 +99,7 @@ export default function UsersPage() {
         roleFilter === 'all' || roleFilter === 'pending' ? undefined : roleFilter
       );
       const data = response.data;
-      return roleFilter === 'pending' ? data.filter((item) => item.papel === 'pending') : data;
+      return data.filter((item) => item.papel !== 'pending');
     },
   });
 
@@ -304,7 +304,6 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os papéis</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
                   
                   <SelectItem value="ong">ONG</SelectItem>
@@ -391,10 +390,12 @@ export default function UsersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
+                        {!user.bloqueado && (
+                          <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                        )}
                         {!user.verificado && (
                           <DropdownMenuItem onClick={() => verifyUserMutation.mutate(user.id)}>
                             <ShieldCheck className="mr-2 h-4 w-4" />
@@ -594,7 +595,5 @@ export default function UsersPage() {
     </div>
   );
 }
-
-
 
 

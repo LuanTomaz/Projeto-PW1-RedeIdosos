@@ -95,6 +95,7 @@ const normalizeUser = (raw: unknown): User => {
         : undefined,
     verificado: Boolean(data.verificado),
     ativo: data.ativo === undefined ? true : Boolean(data.ativo),
+    bloqueado: Boolean(data.bloqueado),
   };
 };
 
@@ -306,8 +307,6 @@ export const authAPI = {
       responsavel: data.responsavel,
       telefone: data.telefone,
       localizacao: toBackendLocation(data.latitude, data.longitude),
-      rg: data.rg,
-      cpf: data.cpf,
       comprovante_residencia_url: data.comprovante_residencia_url,
       foto_perfil_url: data.foto_perfil_url,
     }),
@@ -645,6 +644,7 @@ export interface User {
   comprovante_residencia_url?: string;
   verificado: boolean;
   ativo: boolean;
+  bloqueado?: boolean;
 }
 
 export interface Elder {

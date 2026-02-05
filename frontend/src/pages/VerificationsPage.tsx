@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, FileText, ShieldCheck, ShieldX, UserCheck, UserX } from 'lucide-react';
+import { CheckCircle2, FileText, MoreHorizontal, ShieldCheck, ShieldX, UserCheck, UserX } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL, filesAPI, User, usersAPI, verificationsAPI } from '@/lib/api';
@@ -34,7 +41,7 @@ export default function VerificationsPage() {
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ['verifications', 'volunteers'],
+    queryKey: ['verifications', 'users'],
     queryFn: async () => (await usersAPI.getAll()).data,
   });
 
@@ -43,7 +50,7 @@ export default function VerificationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['verifications'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'Voluntário aprovado' });
+      toast({ title: 'Usuário aprovado' });
     },
     onError: (error: unknown) => {
       toast({
@@ -59,7 +66,7 @@ export default function VerificationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['verifications'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'Voluntário bloqueado' });
+      toast({ title: 'Usuário bloqueado' });
     },
     onError: (error: unknown) => {
       toast({
@@ -106,18 +113,17 @@ export default function VerificationsPage() {
     return `${API_BASE_URL}/${url}`;
   };
 
-  const volunteers = useMemo(() => users.filter((user: User) => user.tipo_cadastro === 'voluntario'), [users]);
-
   const filtered = useMemo(() => {
-    return volunteers.filter((user: User) => {
+    return users.filter((user: User) => {
       const matchesName = user.nome?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesEmail = user.email?.toLowerCase().includes(searchQuery.toLowerCase());
       return Boolean(matchesName || matchesEmail);
     });
-  }, [volunteers, searchQuery]);
+  }, [users, searchQuery]);
 
-  const pending = filtered.filter((user: User) => !user.verificado);
-  const verified = filtered.filter((user: User) => user.verificado);
+  const pending = filtered.filter((user: User) => user.ativo && !user.verificado && !user.bloqueado);
+  const verified = filtered.filter((user: User) => user.verificado && !user.bloqueado);
+  const blocked = filtered.filter((user: User) => user.bloqueado);
 
   return (
     <>
@@ -129,7 +135,7 @@ export default function VerificationsPage() {
       >
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">Verificações</h1>
-          <p className="mt-1 text-muted-foreground">Aprove ou bloqueie voluntários pendentes</p>
+          <p className="mt-1 text-muted-foreground">Aprove ou bloqueie usuários pendentes</p>
         </div>
       </motion.div>
 
@@ -147,7 +153,7 @@ export default function VerificationsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+        className="grid grid-cols-1 gap-6 lg:grid-cols-3"
       >
         <Card>
           <CardContent className="space-y-4 p-6">
@@ -158,7 +164,7 @@ export default function VerificationsPage() {
 
             {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
             {!isLoading && pending.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum voluntário pendente.</p>
+              <p className="text-sm text-muted-foreground">Nenhum usuário pendente.</p>
             )}
 
             {!isLoading &&
@@ -184,20 +190,28 @@ export default function VerificationsPage() {
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openDocs(user)}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Ver documentos
-                    </Button>
-                    <Button size="sm" onClick={() => approveMutation.mutate(user.id)}>
-                      <UserCheck className="mr-2 h-4 w-4" />
-                      Aprovar
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => rejectMutation.mutate(user.id)}>
-                      <UserX className="mr-2 h-4 w-4" />
-                      Bloquear
-                    </Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openDocs(user)}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Ver documentos
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => approveMutation.mutate(user.id)}>
+                        <UserCheck className="mr-2 h-4 w-4" />
+                        Verificar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => rejectMutation.mutate(user.id)}>
+                        <UserX className="mr-2 h-4 w-4" />
+                        Bloquear
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               ))}
           </CardContent>
@@ -238,8 +252,48 @@ export default function VerificationsPage() {
               ))}
 
             {!isLoading && verified.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum voluntário verificado ainda.</p>
+              <p className="text-sm text-muted-foreground">Nenhum usuário verificado ainda.</p>
             )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center gap-2">
+              <UserX className="h-5 w-5 text-red-600" />
+              <h2 className="text-lg font-semibold">Bloqueados ({blocked.length})</h2>
+            </div>
+
+            {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+            {!isLoading && blocked.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhum usuário bloqueado.</p>
+            )}
+
+            {!isLoading &&
+              blocked.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between rounded-xl border border-border p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.foto_perfil_url} />
+                      <AvatarFallback className="bg-red-100 text-red-700">
+                        {user.nome
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{user.nome}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <UserX className="h-5 w-5 text-red-600" />
+                </div>
+              ))}
           </CardContent>
         </Card>
       </motion.div>
@@ -331,6 +385,10 @@ export default function VerificationsPage() {
     </>
   );
 }
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Building2, HandHeart, MapPin, UserCircle } from 'lucide-react';
@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { authAPI, filesAPI, API_BASE_URL } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import LocationPickerMap from '@/components/LocationPickerMap';
+import { formatCnpj, formatCpf, formatPhone, formatRg } from '@/lib/format';
 
 type Coordenadas = {
   latitude: string;
@@ -49,28 +51,50 @@ export default function Onboarding() {
     telefone: '',
   });
 
+  const isOng = user?.tipo_cadastro === 'ong';
+  const isVolunteer = user?.tipo_cadastro === 'voluntario';
+  const isElder = user?.tipo_cadastro === 'idoso';
+
   const roleInfo = useMemo(() => {
     if (!user) return null;
-    if (user.tipo_cadastro === 'idoso') {
+    if (isElder) {
+        const rgDigits = rg.replace(/\D/g, '');
+        const cpfDigits = cpf.replace(/\D/g, '');
+        if (rgDigits.length < 7 || rgDigits.length > 9) {
+          toast({
+            title: 'RG invÃ¡lido',
+            description: 'O RG deve ter entre 7 e 9 dígitos.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        if (cpfDigits.length !== 11) {
+          toast({
+            title: 'CPF invÃ¡lido',
+            description: 'O CPF deve ter 11 dígitos.',
+            variant: 'destructive',
+          });
+          return;
+        }
       return {
         title: 'Complete seu cadastro de Idoso',
         description: 'Informe seus dados para criar seu perfil na plataforma.',
         icon: UserCircle,
       };
     }
-    if (user.tipo_cadastro === 'voluntario') {
+    if (isVolunteer) {
       return {
-        title: 'Complete seu cadastro de Voluntário',
-        description: 'Informe seus dados para começar a ajudar.',
+        title: 'Complete seu cadastro de VoluntÃ¡rio',
+        description: 'Informe seus dados para comeÃ§ar a ajudar.',
         icon: HandHeart,
       };
     }
     return {
       title: 'Complete o cadastro da ONG',
-      description: 'Informe os dados da organização.',
+      description: 'Informe os dados da organizaÃ§Ã£o.',
       icon: Building2,
     };
-  }, [user]);
+  }, [user, isElder, isVolunteer, isOng]);
 
   if (!user || !roleInfo) return null;
 
@@ -96,7 +120,7 @@ export default function Onboarding() {
   };
 
   const uploadFile = async (file: File) => {
-    if (!user) throw new Error('Usuário não autenticado');
+    if (!user) throw new Error('UsuÃ¡rio nÃ£o autenticado');
     const response = await filesAPI.upload(file, 'user', user.id);
     const url = response.data?.file?.url ?? '';
     return toAbsoluteUrl(url);
@@ -106,17 +130,21 @@ export default function Onboarding() {
     const parsed = parseCoords();
     if (!parsed) {
       toast({
-        title: 'Coordenadas inválidas',
-        description: 'Informe latitude e longitude válidas.',
+        title: 'Coordenadas invÃ¡lidas',
+        description: 'Informe latitude e longitude vÃ¡lidas.',
         variant: 'destructive',
       });
       return;
     }
-
-    if (!rg.trim() || !cpf.trim() || !profilePhoto || !rgFile || !cpfFile || !residenceFile) {
+    const requiresPersonalDocs = !isOng;
+    const missingCoreDocs = !profilePhoto || !residenceFile;
+    const missingPersonalDocs = requiresPersonalDocs && (!rg.trim() || !cpf.trim() || !rgFile || !cpfFile);
+    if (missingCoreDocs || missingPersonalDocs) {
       toast({
-        title: 'Documentos obrigatórios',
-        description: 'Anexe foto de perfil, RG, CPF e comprovante de residência.',
+        title: 'Documentos obrigatÃ³rios',
+        description: isOng
+          ? 'Anexe foto de perfil e comprovante de residÃªncia.'
+          : 'Anexe foto de perfil, RG, CPF e comprovante de residÃªncia.',
         variant: 'destructive',
       });
       return;
@@ -124,21 +152,41 @@ export default function Onboarding() {
 
     try {
       setIsSubmitting(true);
-      const [photoUrl, rgUrl, cpfUrl, residenceUrl] = await Promise.all([
+      const [photoUrl, residenceUrl] = await Promise.all([
         uploadFile(profilePhoto),
-        uploadFile(rgFile),
-        uploadFile(cpfFile),
         uploadFile(residenceFile),
       ]);
+
+      if (requiresPersonalDocs) {
+        await Promise.all([uploadFile(rgFile), uploadFile(cpfFile)]);
+      }
       const extraDocs = volunteerDocs.length
         ? await Promise.all(volunteerDocs.map((file) => uploadFile(file)))
         : [];
 
-      if (user.tipo_cadastro === 'idoso') {
+      if (isElder) {
+        const rgDigits = rg.replace(/\D/g, '');
+        const cpfDigits = cpf.replace(/\D/g, '');
+        if (rgDigits.length < 7 || rgDigits.length > 9) {
+          toast({
+            title: 'RG invÃ¡lido',
+            description: 'O RG deve ter entre 7 e 9 dígitos.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        if (cpfDigits.length !== 11) {
+          toast({
+            title: 'CPF invÃ¡lido',
+            description: 'O CPF deve ter 11 dígitos.',
+            variant: 'destructive',
+          });
+          return;
+        }
         if (!elderForm.endereco || !elderForm.data_nascimento) {
           toast({
             title: 'Dados incompletos',
-            description: 'Preencha endereço e data de nascimento.',
+            description: 'Preencha endereÃ§o e data de nascimento.',
             variant: 'destructive',
           });
           return;
@@ -151,26 +199,66 @@ export default function Onboarding() {
           longitude: parsed.longitude,
           rg: rg.trim(),
           cpf: cpf.trim(),
+
           comprovante_residencia_url: residenceUrl,
           foto_perfil_url: photoUrl,
         });
-      } else if (user.tipo_cadastro === 'voluntario') {
+      } else if (isVolunteer) {
+        const rgDigits = rg.replace(/\D/g, '');
+        const cpfDigits = cpf.replace(/\D/g, '');
+        if (rgDigits.length < 7 || rgDigits.length > 9) {
+          toast({
+            title: 'RG invÃ¡lido',
+            description: 'O RG deve ter entre 7 e 9 dígitos.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        if (cpfDigits.length !== 11) {
+          toast({
+            title: 'CPF invÃ¡lido',
+            description: 'O CPF deve ter 11 dígitos.',
+            variant: 'destructive',
+          });
+          return;
+        }
         await authAPI.registerVolunteerProfile({
           disponibilidade: volunteerForm.disponibilidade || undefined,
           area_atuacao: volunteerForm.area_atuacao || undefined,
           latitude: parsed.latitude,
           longitude: parsed.longitude,
+          rg: rg.trim(),
+          cpf: cpf.trim(),
           documentos_url: extraDocs,
           rg: rg.trim(),
           cpf: cpf.trim(),
+
           comprovante_residencia_url: residenceUrl,
           foto_perfil_url: photoUrl,
         });
       } else {
-        if (!ongForm.cnpj || !ongForm.responsavel) {
+        const cnpjDigits = ongForm.cnpj.replace(/\D/g, '');
+        const phoneDigits = ongForm.telefone.replace(/\D/g, '');
+        if (cnpjDigits.length !== 14) {
+          toast({
+            title: 'CNPJ invÃ¡lido',
+            description: 'O CNPJ deve ter 14 dígitos.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+          toast({
+            title: 'Telefone invÃ¡lido',
+            description: 'O telefone deve ter 10 ou 11 dígitos.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        if (!ongForm.cnpj || !ongForm.responsavel || !ongForm.telefone) {
           toast({
             title: 'Dados incompletos',
-            description: 'Informe CNPJ e responsável.',
+            description: 'Informe CNPJ, responsÃ¡vel e telefone.',
             variant: 'destructive',
           });
           return;
@@ -178,11 +266,12 @@ export default function Onboarding() {
         await authAPI.registerOngProfile({
           cnpj: ongForm.cnpj,
           responsavel: ongForm.responsavel,
-          telefone: ongForm.telefone || undefined,
+          telefone: ongForm.telefone,
           latitude: parsed.latitude,
           longitude: parsed.longitude,
           rg: rg.trim(),
           cpf: cpf.trim(),
+
           comprovante_residencia_url: residenceUrl,
           foto_perfil_url: photoUrl,
         });
@@ -191,14 +280,13 @@ export default function Onboarding() {
       updateUser({
         ...user,
         ativo: true,
-        rg: rg.trim(),
-        cpf: cpf.trim(),
+        ...(isOng ? {} : { rg: rg.trim(), cpf: cpf.trim() }),
         comprovante_residencia_url: residenceUrl,
         foto_perfil_url: photoUrl,
       });
       toast({
         title: 'Perfil criado com sucesso',
-        description: 'Agora sua conta aguarda validação.',
+        description: 'Agora sua conta aguarda validaÃ§Ã£o.',
       });
       navigate('/dashboard/pending');
     } catch (error: unknown) {
@@ -231,14 +319,14 @@ export default function Onboarding() {
           <CardTitle className="font-display">Dados do Perfil</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          {user.tipo_cadastro === 'idoso' && (
+          {isElder && (
             <>
               <div className="space-y-2">
-                <Label>Endereço</Label>
+                <Label>EndereÃ§o</Label>
                 <Input
                   value={elderForm.endereco}
                   onChange={(e) => setElderForm((prev) => ({ ...prev, endereco: e.target.value }))}
-                  placeholder="Rua, número, bairro"
+                  placeholder="Rua, nÃºmero, bairro"
                 />
               </div>
               <div className="space-y-2">
@@ -260,18 +348,28 @@ export default function Onboarding() {
             </>
           )}
 
-          {user.tipo_cadastro === 'voluntario' && (
+          {isVolunteer && (
             <>
               <div className="space-y-2">
                 <Label>Disponibilidade</Label>
-                <Input
+                <Select
                   value={volunteerForm.disponibilidade}
-                  onChange={(e) => setVolunteerForm((prev) => ({ ...prev, disponibilidade: e.target.value }))}
-                  placeholder="Ex: Seg a Sex, 14h-18h"
-                />
+                  onValueChange={(value) => setVolunteerForm((prev) => ({ ...prev, disponibilidade: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a disponibilidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manha">ManhÃ£</SelectItem>
+                    <SelectItem value="tarde">Tarde</SelectItem>
+                    <SelectItem value="noite">Noite</SelectItem>
+                    <SelectItem value="integral">Integral</SelectItem>
+                    <SelectItem value="fins_de_semana">Fins de semana</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Área de atuação</Label>
+                <Label>Ãrea de atuaÃ§Ã£o</Label>
                 <Input
                   value={volunteerForm.area_atuacao}
                   onChange={(e) => setVolunteerForm((prev) => ({ ...prev, area_atuacao: e.target.value }))}
@@ -280,70 +378,94 @@ export default function Onboarding() {
               </div>
             </>
           )}
-
-          {user.tipo_cadastro === 'ong' && (
-            <>
-              <div className="space-y-2">
-                <Label>CNPJ</Label>
-                <Input
-                  value={ongForm.cnpj}
-                  onChange={(e) => setOngForm((prev) => ({ ...prev, cnpj: e.target.value }))}
-                  placeholder="00.000.000/0000-00"
-                />
+          {isOng && (
+            <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/40 p-4">
+              <p className="text-sm font-semibold text-emerald-700">Dados da ONG</p>
+              <div className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label>CNPJ</Label>
+                  <Input
+                    value={ongForm.cnpj}
+                    onChange={(e) =>
+                      setOngForm((prev) => ({ ...prev, cnpj: formatCnpj(e.target.value) }))
+                    }
+                    placeholder="00.000.000/0000-00"
+                    maxLength={18}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ResponsÃ¡vel</Label>
+                  <Input
+                    value={ongForm.responsavel}
+                    onChange={(e) => setOngForm((prev) => ({ ...prev, responsavel: e.target.value }))}
+                    placeholder="Nome do responsÃ¡vel"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone (obrigatÃ³rio)</Label>
+                  <Input
+                    value={ongForm.telefone}
+                    onChange={(e) =>
+                      setOngForm((prev) => ({ ...prev, telefone: formatPhone(e.target.value) }))
+                    }
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Responsável</Label>
-                <Input
-                  value={ongForm.responsavel}
-                  onChange={(e) => setOngForm((prev) => ({ ...prev, responsavel: e.target.value }))}
-                  placeholder="Nome do responsável"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefone (opcional)</Label>
-                <Input
-                  value={ongForm.telefone}
-                  onChange={(e) => setOngForm((prev) => ({ ...prev, telefone: e.target.value }))}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-            </>
+            </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>RG</Label>
-              <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="Digite o RG" />
+          {!isOng && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>RG</Label>
+                <Input
+                  value={rg}
+                  onChange={(e) => setRg(formatRg(e.target.value))}
+                  placeholder="Digite o RG"
+                  maxLength={12}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CPF</Label>
+                <Input
+                  value={cpf}
+                  onChange={(e) => setCpf(formatCpf(e.target.value))}
+                  placeholder="Digite o CPF"
+                  maxLength={14}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>CPF</Label>
-              <Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="Digite o CPF" />
-            </div>
-          </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Foto de perfil</Label>
               <Input type="file" accept="image/*" onChange={(e) => setProfilePhoto(e.target.files?.[0] ?? null)} />
             </div>
-            <div className="space-y-2">
-              <Label>RG (arquivo)</Label>
-              <Input type="file" onChange={(e) => setRgFile(e.target.files?.[0] ?? null)} />
-            </div>
+            {!isOng && (
+              <div className="space-y-2">
+                <Label>RG (arquivo)</Label>
+                <Input type="file" onChange={(e) => setRgFile(e.target.files?.[0] ?? null)} />
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
+            {!isOng && (
+              <div className="space-y-2">
+                <Label>CPF (arquivo)</Label>
+                <Input type="file" onChange={(e) => setCpfFile(e.target.files?.[0] ?? null)} />
+              </div>
+            )}
             <div className="space-y-2">
-              <Label>CPF (arquivo)</Label>
-              <Input type="file" onChange={(e) => setCpfFile(e.target.files?.[0] ?? null)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Comprovante de residência</Label>
+              <Label>Comprovante de residÃªncia</Label>
               <Input type="file" onChange={(e) => setResidenceFile(e.target.files?.[0] ?? null)} />
             </div>
           </div>
 
-          {user.tipo_cadastro === 'voluntario' && (
+          {isVolunteer && (
             <div className="space-y-2">
               <Label>Documentos adicionais (opcional)</Label>
               <Input
@@ -352,7 +474,7 @@ export default function Onboarding() {
                 onChange={(e) => setVolunteerDocs(Array.from(e.target.files ?? []))}
               />
               <p className="text-xs text-muted-foreground">
-                Anexe outros documentos que ajudem na validação.
+                Anexe outros documentos que ajudem na validaÃ§Ã£o.
               </p>
             </div>
           )}
@@ -385,7 +507,7 @@ export default function Onboarding() {
           </div>
 
           <div className="space-y-2">
-            <Label>Selecione no mapa</Label>
+            <Label>{isOng ? 'Selecione o Local da ong' : 'Selecione no mapa'}</Label>
             <p className="text-xs text-muted-foreground">
               Clique no mapa para preencher latitude e longitude automaticamente.
             </p>
@@ -412,5 +534,28 @@ export default function Onboarding() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

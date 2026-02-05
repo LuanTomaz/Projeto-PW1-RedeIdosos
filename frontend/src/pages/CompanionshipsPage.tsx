@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -53,7 +54,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   pendente: { label: 'Pendente', color: 'status-pendente', icon: Clock },
   aceito: { label: 'Aceito', color: 'status-aceito', icon: CheckCircle2 },
   em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700', icon: Clock },
-  concluido: { label: 'Concluído', color: 'status-concluido', icon: CheckCircle2 },
+  concluido: { label: 'ConcluÃ­do', color: 'status-concluido', icon: CheckCircle2 },
   cancelado: { label: 'Cancelado', color: 'status-cancelado', icon: XCircle },
 };
 
@@ -71,6 +72,9 @@ export default function CompanionshipsPage() {
   const [selectedCompanionship, setSelectedCompanionship] = useState<Companionship | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [addressQuery, setAddressQuery] = useState('');
+  const [addressResults, setAddressResults] = useState<Array<{ label: string; lat: number; lng: number }>>([]);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [createForm, setCreateForm] = useState({
     idoso_id: '',
     atividade: '',
@@ -84,6 +88,8 @@ export default function CompanionshipsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const location = useLocation();
+  const isMyActivities = location.pathname === '/dashboard/my-activities';
 
   const { data: companionships = [], isLoading } = useQuery({
     queryKey: ['companionships', user?.papel],
@@ -98,12 +104,12 @@ export default function CompanionshipsPage() {
   const acceptMutation = useMutation({
     mutationFn: (id: string) => companionshipsAPI.accept(id),
     onSuccess: () => {
-      toast({ title: 'Solicitação aceita com sucesso' });
+      toast({ title: 'SolicitaÃ§Ã£o aceita com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['companionships'] });
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Não foi possível aceitar',
+        title: 'NÃ£o foi possÃ­vel aceitar',
         description: getErrorMessage(error, 'Tente novamente'),
         variant: 'destructive',
       });
@@ -119,7 +125,7 @@ export default function CompanionshipsPage() {
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Não foi possível atualizar o status',
+        title: 'NÃ£o foi possÃ­vel atualizar o status',
         description: getErrorMessage(error, 'Tente novamente'),
         variant: 'destructive',
       });
@@ -128,10 +134,18 @@ export default function CompanionshipsPage() {
 
   const createMutation = useMutation({
     mutationFn: () => {
+      if (createForm.data) {
+        const today = new Date();
+        const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const chosen = new Date(createForm.data);
+        if (chosen < todayDate) {
+          return Promise.reject(new Error('A data deve ser hoje ou uma data futura'));
+        }
+      }
       const latitude = Number(createForm.latitude);
       const longitude = Number(createForm.longitude);
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-        return Promise.reject(new Error('Latitude e longitude inválidas'));
+        return Promise.reject(new Error('Latitude e longitude invÃ¡lidas'));
       }
 
       if (user?.papel !== 'idoso' && !createForm.idoso_id.trim()) {
@@ -150,9 +164,11 @@ export default function CompanionshipsPage() {
       });
     },
     onSuccess: () => {
-      toast({ title: 'Solicitação criada com sucesso' });
+      toast({ title: 'SolicitaÃ§Ã£o criada com sucesso' });
       queryClient.invalidateQueries({ queryKey: ['companionships'] });
       setIsCreateDialogOpen(false);
+      setAddressQuery('');
+      setAddressResults([]);
       setCreateForm({
         idoso_id: '',
         atividade: '',
@@ -166,7 +182,7 @@ export default function CompanionshipsPage() {
     },
     onError: (error: unknown) => {
       toast({
-        title: 'Não foi possível criar',
+        title: 'NÃ£o foi possÃ­vel criar',
         description: getErrorMessage(error, 'Verifique os dados e tente novamente'),
         variant: 'destructive',
       });
@@ -190,6 +206,13 @@ export default function CompanionshipsPage() {
         elderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         comp.atividade.toLowerCase().includes(searchQuery.toLowerCase()) ||
         comp.local_descricao.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (isMyActivities) {
+        if (user?.papel !== 'voluntario') return false;
+        const isAssigned = comp.voluntario?.usuario?.id === user.id;
+        return matchesSearch && isAssigned && effectiveStatus === 'concluido';
+      }
+
       const matchesStatus = statusFilter === 'all' || effectiveStatus === statusFilter;
       if (user?.papel === 'voluntario') {
         const isAssigned = comp.voluntario?.usuario?.id === user.id;
@@ -198,7 +221,7 @@ export default function CompanionshipsPage() {
       }
       return matchesSearch && matchesStatus;
     });
-  }, [companionships, searchQuery, statusFilter, user?.id, user?.papel]);
+  }, [companionships, searchQuery, statusFilter, user?.id, user?.papel, isMyActivities]);
 
   const handleAccept = (comp: Companionship) => {
     acceptMutation.mutate(comp.id);
@@ -217,6 +240,42 @@ export default function CompanionshipsPage() {
   const mapLatitude = Number.isFinite(parsedLatitude) ? parsedLatitude : undefined;
   const mapLongitude = Number.isFinite(parsedLongitude) ? parsedLongitude : undefined;
 
+  const todayInputValue = (() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  })();
+
+  const searchAddress = async () => {
+    const query = addressQuery.trim();
+    if (!query) return;
+    setIsSearchingAddress(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`
+      );
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        setAddressResults([]);
+        return;
+      }
+      const normalized = data
+        .map((item: { display_name?: string; lat?: string; lon?: string }) => ({
+          label: item.display_name ?? 'EndereÃ§o',
+          lat: Number(item.lat),
+          lng: Number(item.lon),
+        }))
+        .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng));
+      setAddressResults(normalized);
+    } catch {
+      setAddressResults([]);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -225,56 +284,58 @@ export default function CompanionshipsPage() {
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Companhias</h1>
-          <p className="mt-1 text-muted-foreground">Gerencie as solicitações de companhia</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">{isMyActivities ? 'Minhas Atividades' : 'Companhias'}</h1>
+          <p className="mt-1 text-muted-foreground">{isMyActivities ? 'Atividades concluÃ­das por vocÃª' : 'Gerencie as solicitaÃ§Ãµes de companhia'}</p>
         </div>
-        {(user?.papel === 'idoso' || user?.papel === 'ong' || user?.papel === 'admin') && (
+        {!isMyActivities && (user?.papel === 'idoso' || user?.papel === 'ong' || user?.papel === 'admin') && (
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Nova Solicitação
+            Nova SolicitaÃ§Ã£o
           </Button>
         )}
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 gap-4 md:grid-cols-5"
-      >
-        {Object.entries(statusConfig).map(([status, config]) => {
-          const count = companionships.filter((item) => {
-            const now = new Date();
-            const [hoursRaw, minutesRaw] = item.hora.split(':');
-            const hours = Number(hoursRaw);
-            const minutes = Number(minutesRaw ?? '0');
-            const start = new Date(item.data);
-            if (Number.isFinite(hours) && Number.isFinite(minutes)) {
-              start.setHours(hours, minutes, 0, 0);
-            }
-            const effectiveStatus =
-              item.status === 'aceito' && now >= start ? 'em_andamento' : item.status;
-            return effectiveStatus === status;
-          }).length;
-          return (
-            <Card
-              key={status}
-              className="cursor-pointer transition-shadow hover:shadow-md"
-              onClick={() => setStatusFilter(status)}
-            >
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className={cn('rounded-full p-2', config.color.replace('text-', 'bg-').split(' ')[0])}>
-                  <config.icon className={cn('h-5 w-5', config.color.split(' ')[1])} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{count}</p>
-                  <p className="text-xs text-muted-foreground">{config.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </motion.div>
+      {!isMyActivities && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 gap-4 md:grid-cols-5"
+        >
+          {Object.entries(statusConfig).map(([status, config]) => {
+            const count = companionships.filter((item) => {
+              const now = new Date();
+              const [hoursRaw, minutesRaw] = item.hora.split(':');
+              const hours = Number(hoursRaw);
+              const minutes = Number(minutesRaw ?? '0');
+              const start = new Date(item.data);
+              if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+                start.setHours(hours, minutes, 0, 0);
+              }
+              const effectiveStatus =
+                item.status === 'aceito' && now >= start ? 'em_andamento' : item.status;
+              return effectiveStatus === status;
+            }).length;
+            return (
+              <Card
+                key={status}
+                className="cursor-pointer transition-shadow hover:shadow-md"
+                onClick={() => setStatusFilter(status)}
+              >
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div className={cn('rounded-full p-2', config.color.replace('text-', 'bg-').split(' ')[0])}>
+                    <config.icon className={cn('h-5 w-5', config.color.split(' ')[1])} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-xs text-muted-foreground">{config.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -293,19 +354,21 @@ export default function CompanionshipsPage() {
                   className="pl-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="aceito">Aceito</SelectItem>
-                  <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                  <SelectItem value="concluido">Concluído</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
+              {!isMyActivities && (
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Filtrar por status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="aceito">Aceito</SelectItem>
+                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                    <SelectItem value="concluido">ConcluÃ­do</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -317,7 +380,7 @@ export default function CompanionshipsPage() {
         transition={{ delay: 0.3 }}
         className="space-y-4"
       >
-        {isLoading && <p className="py-10 text-center text-muted-foreground">Carregando solicitações...</p>}
+        {isLoading && <p className="py-10 text-center text-muted-foreground">Carregando solicitaÃ§Ãµes...</p>}
 
         {!isLoading &&
           filteredCompanionships.map((comp, index) => {
@@ -397,7 +460,7 @@ export default function CompanionshipsPage() {
                                   .slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-xs text-muted-foreground">Voluntário</span>
+                            <span className="text-xs text-muted-foreground">VoluntÃ¡rio</span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center gap-1">
@@ -441,20 +504,20 @@ export default function CompanionshipsPage() {
                               <DropdownMenuItem
                                 onClick={() =>
                                   toast({
-                                    title: 'Verificação pendente',
+                                    title: 'VerificaÃ§Ã£o pendente',
                                     description:
-                                      'Sua conta ainda não foi verificada. Você só pode aceitar solicitações após a aprovação do administrador.',
+                                      'Sua conta ainda nÃ£o foi verificada. VocÃª sÃ³ pode aceitar solicitaÃ§Ãµes apÃ³s a aprovaÃ§Ã£o do administrador.',
                                   })
                                 }
                               >
                                 <ShieldAlert className="mr-2 h-4 w-4 text-amber-600" />
-                                Aceitar (aguardando verificação)
+                                Aceitar (aguardando verificaÃ§Ã£o)
                               </DropdownMenuItem>
                             )}
                             {(comp.status === 'aceito' || comp.status === 'em_andamento') && (
                               <DropdownMenuItem onClick={() => handleComplete(comp)}>
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Marcar como Concluído
+                                Marcar como ConcluÃ­do
                               </DropdownMenuItem>
                             )}
                             {comp.status !== 'concluido' && comp.status !== 'cancelado' && (
@@ -478,7 +541,7 @@ export default function CompanionshipsPage() {
 
         {!isLoading && filteredCompanionships.length === 0 && (
           <div className="py-12 text-center">
-            <p className="text-muted-foreground">Nenhuma solicitação encontrada</p>
+            <p className="text-muted-foreground">Nenhuma solicitaÃ§Ã£o encontrada</p>
           </div>
         )}
       </motion.div>
@@ -515,7 +578,7 @@ export default function CompanionshipsPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Horário</p>
+                  <p className="text-sm text-muted-foreground">HorÃ¡rio</p>
                   <p className="font-medium">{selectedCompanionship.hora}</p>
                 </div>
               </div>
@@ -553,10 +616,19 @@ export default function CompanionshipsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-lg">
+      <Dialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) {
+            setAddressQuery('');
+            setAddressResults([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova solicitação</DialogTitle>
+            <DialogTitle>Nova solicitaÃ§Ã£o</DialogTitle>
             <DialogDescription>Preencha os dados da atividade de companhia.</DialogDescription>
           </DialogHeader>
 
@@ -582,7 +654,7 @@ export default function CompanionshipsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição</Label>
+              <Label>DescriÃ§Ã£o</Label>
               <Textarea
                 value={createForm.descricao}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, descricao: e.target.value }))}
@@ -597,10 +669,11 @@ export default function CompanionshipsPage() {
                   type="date"
                   value={createForm.data}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, data: e.target.value }))}
+                  min={todayInputValue}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Horário</Label>
+                <Label>HorÃ¡rio</Label>
                 <Input
                   type="time"
                   value={createForm.hora}
@@ -610,11 +683,11 @@ export default function CompanionshipsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Local (descrição)</Label>
+              <Label>Local (descriÃ§Ã£o)</Label>
               <Input
                 value={createForm.local_descricao}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, local_descricao: e.target.value }))}
-                placeholder="Ex: Praça central"
+                placeholder="Ex: PraÃ§a central"
               />
             </div>
 
@@ -635,6 +708,47 @@ export default function CompanionshipsPage() {
                   placeholder="-46.6333"
                 />
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Buscar endereÃ§o no mapa</Label>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Input
+                  placeholder="Digite um endereÃ§o ou ponto de referÃªncia"
+                  value={addressQuery}
+                  onChange={(e) => setAddressQuery(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={searchAddress}
+                  disabled={isSearchingAddress}
+                  className="sm:w-[180px]"
+                >
+                  {isSearchingAddress ? 'Buscando...' : 'Buscar'}
+                </Button>
+              </div>
+              {addressResults.length > 0 && (
+                <div className="rounded-lg border border-border p-2">
+                  {addressResults.map((item, index) => (
+                    <button
+                      key={`${item.label}-${index}`}
+                      type="button"
+                      className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+                      onClick={() => {
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          latitude: item.lat.toFixed(6),
+                          longitude: item.lng.toFixed(6),
+                          local_descricao: prev.local_descricao || item.label,
+                        }));
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -662,7 +776,7 @@ export default function CompanionshipsPage() {
               Cancelar
             </Button>
             <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Enviando...' : 'Criar solicitação'}
+              {createMutation.isPending ? 'Enviando...' : 'Criar solicitaÃ§Ã£o'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -670,5 +784,7 @@ export default function CompanionshipsPage() {
     </div>
   );
 }
+
+
 
 

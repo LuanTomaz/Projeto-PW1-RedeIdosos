@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, HandHeart, MapPin, UserCircle } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { eldersAPI, filesAPI, ongsAPI, volunteersAPI, API_BASE_URL } from '@/lib/api';
+import { formatCnpj, formatCpf, formatPhone, formatRg } from '@/lib/format';
 import { useAuth } from '@/contexts/AuthContext';
 import LocationPickerMap from '@/components/LocationPickerMap';
 
@@ -119,7 +121,7 @@ export default function ProfilePage() {
   };
 
   const uploadFile = async (file: File) => {
-    if (!user) throw new Error('Usuário não autenticado');
+    if (!user) throw new Error('UsuÃ¡rio nÃ£o autenticado');
     const response = await filesAPI.upload(file, 'user', user.id);
     const url = response.data?.file?.url ?? '';
     return toAbsoluteUrl(url);
@@ -133,8 +135,32 @@ export default function ProfilePage() {
         comprovante_residencia_url?: string;
         foto_perfil_url?: string;
       } = {};
-      if (rg.trim()) updates.rg = rg.trim();
-      if (cpf.trim()) updates.cpf = cpf.trim();
+      if (!isOng) {
+        if (rg.trim()) updates.rg = rg.trim();
+        if (cpf.trim()) updates.cpf = cpf.trim();
+      }
+
+      if (!isOng) {
+        const rgDigits = rg.replace(/\D/g, '');
+        const cpfDigits = cpf.replace(/\D/g, '');
+        if (rgDigits && (rgDigits.length < 7 || rgDigits.length > 9)) {
+          throw new Error('RG deve ter entre 7 e 9 dígitos');
+        }
+        if (cpfDigits && cpfDigits.length !== 11) {
+          throw new Error('CPF deve ter 11 dígitos');
+        }
+      }
+
+      if (isOng) {
+        const cnpjDigits = form.cnpj.replace(/\D/g, '');
+        const phoneDigits = form.telefone.replace(/\D/g, '');
+        if (cnpjDigits && cnpjDigits.length !== 14) {
+          throw new Error('CNPJ deve ter 14 dígitos');
+        }
+        if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)) {
+          throw new Error('Telefone deve ter 10 ou 11 dígitos');
+        }
+      }
 
       if (profilePhoto) {
         updates.foto_perfil_url = await uploadFile(profilePhoto);
@@ -142,10 +168,10 @@ export default function ProfilePage() {
       if (residenceFile) {
         updates.comprovante_residencia_url = await uploadFile(residenceFile);
       }
-      if (rgFile) {
+      if (!isOng && rgFile) {
         await uploadFile(rgFile);
       }
-      if (cpfFile) {
+      if (!isOng && cpfFile) {
         await uploadFile(cpfFile);
       }
 
@@ -195,8 +221,7 @@ export default function ProfilePage() {
       if (user) {
         updateUser({
           ...user,
-          rg: rg.trim() || user.rg,
-          cpf: cpf.trim() || user.cpf,
+          ...(isOng ? {} : { rg: rg.trim() || user.rg, cpf: cpf.trim() || user.cpf }),
           ...(data?.userUpdates?.foto_perfil_url && { foto_perfil_url: data.userUpdates.foto_perfil_url }),
           ...(data?.userUpdates?.comprovante_residencia_url && {
             comprovante_residencia_url: data.userUpdates.comprovante_residencia_url,
@@ -234,7 +259,7 @@ export default function ProfilePage() {
       >
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">{header.title}</h1>
-          <p className="mt-1 text-muted-foreground">Atualize suas informações pessoais</p>
+          <p className="mt-1 text-muted-foreground">Atualize suas informaÃ§Ãµes pessoais</p>
         </div>
         <header.icon className="h-10 w-10 text-primary" />
       </motion.div>
@@ -247,7 +272,7 @@ export default function ProfilePage() {
           {isElder && (
             <>
               <div className="space-y-2">
-                <Label>Endereço</Label>
+                <Label>EndereÃ§o</Label>
                 <Input
                   value={form.endereco}
                   onChange={(e) => setForm((prev) => ({ ...prev, endereco: e.target.value }))}
@@ -276,13 +301,24 @@ export default function ProfilePage() {
             <>
               <div className="space-y-2">
                 <Label>Disponibilidade</Label>
-                <Input
+                <Select
                   value={form.disponibilidade}
-                  onChange={(e) => setForm((prev) => ({ ...prev, disponibilidade: e.target.value }))}
-                />
+                  onValueChange={(value) => setForm((prev) => ({ ...prev, disponibilidade: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a disponibilidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manha">ManhÃ£</SelectItem>
+                    <SelectItem value="tarde">Tarde</SelectItem>
+                    <SelectItem value="noite">Noite</SelectItem>
+                    <SelectItem value="integral">Integral</SelectItem>
+                    <SelectItem value="fins_de_semana">Fins de semana</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Área de atuação</Label>
+                <Label>Ãrea de atuaÃ§Ã£o</Label>
                 <Input
                   value={form.area_atuacao}
                   onChange={(e) => setForm((prev) => ({ ...prev, area_atuacao: e.target.value }))}
@@ -290,7 +326,6 @@ export default function ProfilePage() {
               </div>
             </>
           )}
-
           {isOng && (
             <>
               <div className="space-y-2">
@@ -301,14 +336,14 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Responsável</Label>
+                <Label>ResponsÃ¡vel</Label>
                 <Input
                   value={form.responsavel}
                   onChange={(e) => setForm((prev) => ({ ...prev, responsavel: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Telefone</Label>
+                <Label>Telefone (obrigatÃ³rio)</Label>
                 <Input
                   value={form.telefone}
                   onChange={(e) => setForm((prev) => ({ ...prev, telefone: e.target.value }))}
@@ -317,35 +352,51 @@ export default function ProfilePage() {
             </>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>RG</Label>
-              <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="Digite o RG" />
+          {!isOng && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>RG</Label>
+                <Input
+                  value={rg}
+                  onChange={(e) => setRg(formatRg(e.target.value))}
+                  placeholder="Digite o RG"
+                  maxLength={12}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CPF</Label>
+                <Input
+                  value={cpf}
+                  onChange={(e) => setCpf(formatCpf(e.target.value))}
+                  placeholder="Digite o CPF"
+                  maxLength={14}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>CPF</Label>
-              <Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="Digite o CPF" />
-            </div>
-          </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Foto de perfil</Label>
               <Input type="file" accept="image/*" onChange={(e) => setProfilePhoto(e.target.files?.[0] ?? null)} />
             </div>
-            <div className="space-y-2">
-              <Label>RG (arquivo)</Label>
-              <Input type="file" onChange={(e) => setRgFile(e.target.files?.[0] ?? null)} />
-            </div>
+            {!isOng && (
+              <div className="space-y-2">
+                <Label>RG (arquivo)</Label>
+                <Input type="file" onChange={(e) => setRgFile(e.target.files?.[0] ?? null)} />
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
+            {!isOng && (
+              <div className="space-y-2">
+                <Label>CPF (arquivo)</Label>
+                <Input type="file" onChange={(e) => setCpfFile(e.target.files?.[0] ?? null)} />
+              </div>
+            )}
             <div className="space-y-2">
-              <Label>CPF (arquivo)</Label>
-              <Input type="file" onChange={(e) => setCpfFile(e.target.files?.[0] ?? null)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Comprovante de residência</Label>
+              <Label>Comprovante de residÃªncia</Label>
               <Input type="file" onChange={(e) => setResidenceFile(e.target.files?.[0] ?? null)} />
             </div>
           </div>
@@ -376,7 +427,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Selecione no mapa</Label>
+            <Label>{isOng ? 'Selecione o Local da ong' : 'Selecione no mapa'}</Label>
             <p className="text-xs text-muted-foreground">
               Clique no mapa para preencher latitude e longitude automaticamente.
             </p>
@@ -396,7 +447,7 @@ export default function ProfilePage() {
 
           <div className="flex justify-end">
             <Button onClick={() => updateProfileMutation.mutate()} disabled={updateProfileMutation.isPending}>
-              {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+              {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar alteraÃ§Ãµes'}
             </Button>
           </div>
         </CardContent>
@@ -404,5 +455,16 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
 
 

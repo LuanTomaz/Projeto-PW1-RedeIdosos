@@ -86,6 +86,9 @@ export default function EldersPage() {
 
   const filteredElders = useMemo(() => {
     return elders.filter((elder) => {
+      if (!elder.usuario?.verificado || elder.usuario?.papel === 'pending') {
+        return false;
+      }
       const matchesName = elder.usuario?.nome
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase());
@@ -363,5 +366,4 @@ export default function EldersPage() {
     </div>
   );
 }
-
 
