@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import * as VolunteerService from "../services/volunteer.service";
+import * as UserService from "../services/user.service";
 import { z } from "zod";
 import { User } from "../models/User";
 import { Volunteer } from "../models/Volunteer";
@@ -32,7 +33,7 @@ export const createVolunteer = async (req: Request, res: Response) => {
     }
 };
 
-// Controlador para listar voluntários
+// Controlador para listar voluntÃ¡rios
 export const getVolunteers = async (req: Request, res: Response) => {
     try {
         const volunteers = await VolunteerService.getVolunteers();
@@ -42,7 +43,7 @@ export const getVolunteers = async (req: Request, res: Response) => {
     }
 };
 
-// Controlador para atualizar voluntário
+// Controlador para atualizar voluntÃ¡rio
 export const updateVolunteer = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -53,31 +54,31 @@ export const updateVolunteer = async (req: Request, res: Response) => {
     }
 };
 
-// Controlador para deletar voluntário
+// Controlador para deletar voluntÃ¡rio
 export const deleteVolunteer = async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
-    // Busca o voluntário
+    // Busca o voluntÃ¡rio
     const volunteer = await Volunteer.findById(id);
 
     if (!volunteer) {
-      return res.status(404).json({ error: "Voluntário não encontrado" });
+      return res.status(404).json({ error: "VoluntÃ¡rio nÃ£o encontrado" });
     }
 
-    // Remove o usuário associado
+    // Remove o usuÃ¡rio associado
     await User.findByIdAndDelete(volunteer.usuario_id);
 
     // Neo4j: remove nodes
     await deleteNodeById('Volunteer', id);
     await deleteNodeById('User', volunteer.usuario_id.toString());
 
-    // Remove o voluntário
+    // Remove o voluntÃ¡rio
     await Volunteer.findByIdAndDelete(id);
 
     return res.status(200).json({
             success: true,
-            message: "Voluntário e usuário deletados (ou voluntário deletado, se houve problema no usuário).",
+            message: "VoluntÃ¡rio e usuÃ¡rio deletados (ou voluntÃ¡rio deletado, se houve problema no usuÃ¡rio).",
             volunteerId: id,
             userId: volunteer.usuario_id
         });
@@ -86,18 +87,18 @@ export const deleteVolunteer = async (req: Request, res: Response) => {
   }
 };
 
-// Controlador para obter o perfil do voluntário autenticado
+// Controlador para obter o perfil do voluntÃ¡rio autenticado
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
         const volunteer = await VolunteerService.getVolunteerByUserId(usuario_id);
         if (!volunteer) {
-            return res.status(404).json({ error: "Perfil de voluntário não encontrado" });
+            return res.status(404).json({ error: "Perfil de voluntÃ¡rio nÃ£o encontrado" });
         }
 
         res.json(volunteer);
@@ -106,34 +107,51 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// Controlador para atualizar o perfil do voluntário autenticado
+// Controlador para atualizar o perfil do voluntÃ¡rio autenticado
 export const updateMyProfile = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
-        const volunteer = await VolunteerService.updateVolunteerByUserId(usuario_id, req.body);
+        const {
+            rg,
+            cpf,
+            comprovante_residencia_url,
+            foto_perfil_url,
+            ...volunteerPayload
+        } = req.body ?? {};
+
+        const userUpdates: Record<string, unknown> = {};
+        if (rg) userUpdates.rg = rg;
+        if (cpf) userUpdates.cpf = cpf;
+        if (comprovante_residencia_url) userUpdates.comprovante_residencia_url = comprovante_residencia_url;
+        if (foto_perfil_url) userUpdates.foto_perfil_url = foto_perfil_url;
+
+        if (Object.keys(userUpdates).length > 0) {
+            await UserService.updateUser(usuario_id, userUpdates);
+        }
+
+        const volunteer = await VolunteerService.updateVolunteerByUserId(usuario_id, volunteerPayload);
         res.json(volunteer);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }
 };
-
-// Controlador para atualizar a localização do voluntário autenticado
+// Controlador para atualizar a localizaÃ§Ã£o do voluntÃ¡rio autenticado
 export const updateMyLocation = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
         const { latitude, longitude } = req.body;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
         if (typeof latitude !== "number" || typeof longitude !== "number") {
-            return res.status(400).json({ error: "Latitude e longitude são obrigatórias e devem ser números" });
+            return res.status(400).json({ error: "Latitude e longitude sÃ£o obrigatÃ³rias e devem ser nÃºmeros" });
         }
 
         const updateData = {

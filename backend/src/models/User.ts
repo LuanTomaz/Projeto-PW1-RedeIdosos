@@ -8,6 +8,9 @@ export interface IUser extends Document {
     tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
     telefone?: string;
     foto_perfil_url?: string;
+    rg?: string;
+    cpf?: string;
+    comprovante_residencia_url?: string;
     verificado: boolean;
     ativo: boolean;
 }
@@ -40,6 +43,15 @@ const UserSchema: Schema = new Schema({
         type: String
     },
     foto_perfil_url: {
+        type: String
+    },
+    rg: {
+        type: String
+    },
+    cpf: {
+        type: String
+    },
+    comprovante_residencia_url: {
         type: String
     },
     verificado: {

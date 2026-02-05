@@ -118,6 +118,10 @@ export const createElderProfile = async (req: AuthRequest, res: Response) => {
             }),
             data_nascimento: z.string(),
             necessidades_especiais: z.string().optional(),
+            rg: z.string().optional(),
+            cpf: z.string().optional(),
+            comprovante_residencia_url: z.string().optional(),
+            foto_perfil_url: z.string().optional(),
         }).parse(req.body);
 
         const existing = await Elder.findOne({ usuario_id: req.user.id });
@@ -133,6 +137,10 @@ export const createElderProfile = async (req: AuthRequest, res: Response) => {
 
         await User.findByIdAndUpdate(req.user.id, {
             ativo: true,
+            ...(validated.rg && { rg: validated.rg }),
+            ...(validated.cpf && { cpf: validated.cpf }),
+            ...(validated.comprovante_residencia_url && { comprovante_residencia_url: validated.comprovante_residencia_url }),
+            ...(validated.foto_perfil_url && { foto_perfil_url: validated.foto_perfil_url }),
         });
 
         // Neo4j
@@ -161,10 +169,15 @@ export const createVolunteerProfile = async (req: AuthRequest, res: Response) =>
     const validated = z.object({
       disponibilidade: z.string().optional(),
       area_atuacao: z.string().optional(),
+      documentos_url: z.array(z.string()).optional(),
       localizacao: z.object({
         type: z.literal("Point"),
         coordinates: z.tuple([z.number(), z.number()]),
       }),
+      rg: z.string().optional(),
+      cpf: z.string().optional(),
+      comprovante_residencia_url: z.string().optional(),
+      foto_perfil_url: z.string().optional(),
     }).parse(req.body);
 
     const existing = await Volunteer.findOne({ usuario_id: req.user.id });
@@ -174,12 +187,19 @@ export const createVolunteerProfile = async (req: AuthRequest, res: Response) =>
 
     const volunteer = await Volunteer.create({
       usuario_id: req.user.id,
-      ...validated,
+      disponibilidade: validated.disponibilidade,
+      area_atuacao: validated.area_atuacao,
+      documentos_url: validated.documentos_url,
+      localizacao: validated.localizacao,
       verificado: false,
     });
 
     await User.findByIdAndUpdate(req.user.id, {
       ativo: true,
+      ...(validated.rg && { rg: validated.rg }),
+      ...(validated.cpf && { cpf: validated.cpf }),
+      ...(validated.comprovante_residencia_url && { comprovante_residencia_url: validated.comprovante_residencia_url }),
+      ...(validated.foto_perfil_url && { foto_perfil_url: validated.foto_perfil_url }),
     });
 
     // Neo4j
@@ -213,6 +233,10 @@ export const createOngProfile = async (req: AuthRequest, res: Response) => {
         type: z.literal("Point"),
         coordinates: z.tuple([z.number(), z.number()]),
       }),
+      rg: z.string().optional(),
+      cpf: z.string().optional(),
+      comprovante_residencia_url: z.string().optional(),
+      foto_perfil_url: z.string().optional(),
     }).parse(req.body);
 
     const existing = await Ong.findOne({ usuario_id: req.user.id });
@@ -234,6 +258,10 @@ export const createOngProfile = async (req: AuthRequest, res: Response) => {
 
     await User.findByIdAndUpdate(user._id, {
       ativo: true,
+      ...(validated.rg && { rg: validated.rg }),
+      ...(validated.cpf && { cpf: validated.cpf }),
+      ...(validated.comprovante_residencia_url && { comprovante_residencia_url: validated.comprovante_residencia_url }),
+      ...(validated.foto_perfil_url && { foto_perfil_url: validated.foto_perfil_url }),
     });
 
     // Neo4j

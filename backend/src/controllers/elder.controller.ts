@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import * as ElderService from "../services/elder.service";
 import * as UserService from "../services/user.service";
 import { z } from "zod";
@@ -23,7 +23,7 @@ const elderSchema = z.object({
     necessidades_especiais: z.string().optional()
 });
 
-// Rota desativada para evitar criação manual de idosos
+// Rota desativada para evitar criaÃ§Ã£o manual de idosos
 // export const createElder = async (req: Request, res: Response) => {
 //     try {
 //         const validated = elderSchema.parse(req.body);
@@ -60,18 +60,18 @@ export const updateElder = async (req: Request, res: Response) => {
     }
 };
 
-// Controlador para deletar um idoso e o usuário relacionado pelo ID do idoso
+// Controlador para deletar um idoso e o usuÃ¡rio relacionado pelo ID do idoso
 export const deleteElderController = async (req: Request, res: Response) => {
     try {
         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ error: "ID inválido" });
+            return res.status(400).json({ error: "ID invÃ¡lido" });
         }
 
         const elder = await ElderService.getElderById(id);
         if (!elder) {
-            return res.status(404).json({ error: "Idoso não encontrado" });
+            return res.status(404).json({ error: "Idoso nÃ£o encontrado" });
         }
 
         const userId = elder.usuario_id._id?.toString();
@@ -82,20 +82,20 @@ export const deleteElderController = async (req: Request, res: Response) => {
         // Neo4j: remove node do perfil
         await deleteNodeById('Elder', id);
 
-        // Deletar o usuário relacionado
+        // Deletar o usuÃ¡rio relacionado
         if (userId) {
             try {
                 await UserService.deleteUser(userId);
                 // Neo4j: remove node do usuario
                 await deleteNodeById('User', userId);
             } catch (err) {
-                console.error("Erro ao deletar o usuário:", err);
+                console.error("Erro ao deletar o usuÃ¡rio:", err);
             }
         }
 
         return res.status(200).json({
             success: true,
-            message: "Idoso e usuário deletados (ou idoso deletado, se houve problema no usuário).",
+            message: "Idoso e usuÃ¡rio deletados (ou idoso deletado, se houve problema no usuÃ¡rio).",
             elderId: id,
             userId
         });
@@ -112,12 +112,12 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
         const usuario_id = req.user?.id;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
         const elder = await ElderService.getElderByUserId(usuario_id);
         if (!elder) {
-            return res.status(404).json({ error: "Perfil de idoso não encontrado" });
+            return res.status(404).json({ error: "Perfil de idoso nÃ£o encontrado" });
         }
 
         res.json(elder);
@@ -132,28 +132,46 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
         const usuario_id = req.user?.id;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
-        const elder = await ElderService.updateElderByUserId(usuario_id, req.body);
+        const {
+            rg,
+            cpf,
+            comprovante_residencia_url,
+            foto_perfil_url,
+            ...elderPayload
+        } = req.body ?? {};
+
+        const userUpdates: Record<string, unknown> = {};
+        if (rg) userUpdates.rg = rg;
+        if (cpf) userUpdates.cpf = cpf;
+        if (comprovante_residencia_url) userUpdates.comprovante_residencia_url = comprovante_residencia_url;
+        if (foto_perfil_url) userUpdates.foto_perfil_url = foto_perfil_url;
+
+        if (Object.keys(userUpdates).length > 0) {
+            await UserService.updateUser(usuario_id, userUpdates);
+        }
+
+        const elder = await ElderService.updateElderByUserId(usuario_id, elderPayload);
         res.json(elder);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }
 };
 
-// Controller para atualizar a localização do idoso autenticado
+// Controller para atualizar a localizaÃ§Ã£o do idoso autenticado
 export const updateMyLocation = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
         const { latitude, longitude } = req.body;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
         if (typeof latitude !== "number" || typeof longitude !== "number") {
-            return res.status(400).json({ error: "Latitude e longitude são obrigatórias e devem ser números" });
+            return res.status(400).json({ error: "Latitude e longitude sÃ£o obrigatÃ³rias e devem ser nÃºmeros" });
         }
 
         const updateData = {

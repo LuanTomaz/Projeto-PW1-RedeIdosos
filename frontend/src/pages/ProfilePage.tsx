@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { eldersAPI, ongsAPI, volunteersAPI } from '@/lib/api';
+import { eldersAPI, filesAPI, ongsAPI, volunteersAPI, API_BASE_URL } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import LocationPickerMap from '@/components/LocationPickerMap';
 
@@ -21,7 +21,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -59,6 +59,12 @@ export default function ProfilePage() {
     latitude: '',
     longitude: '',
   });
+  const [rg, setRg] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [rgFile, setRgFile] = useState<File | null>(null);
+  const [cpfFile, setCpfFile] = useState<File | null>(null);
+  const [residenceFile, setResidenceFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (elderProfile) {
@@ -98,8 +104,51 @@ export default function ProfilePage() {
     }
   }, [ongProfile]);
 
+  useEffect(() => {
+    if (user) {
+      setRg(user.rg ?? '');
+      setCpf(user.cpf ?? '');
+    }
+  }, [user]);
+
+  const toAbsoluteUrl = (url: string) => {
+    if (!url) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}/${url}`;
+  };
+
+  const uploadFile = async (file: File) => {
+    if (!user) throw new Error('Usuário não autenticado');
+    const response = await filesAPI.upload(file, 'user', user.id);
+    const url = response.data?.file?.url ?? '';
+    return toAbsoluteUrl(url);
+  };
+
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
+      const updates: {
+        rg?: string;
+        cpf?: string;
+        comprovante_residencia_url?: string;
+        foto_perfil_url?: string;
+      } = {};
+      if (rg.trim()) updates.rg = rg.trim();
+      if (cpf.trim()) updates.cpf = cpf.trim();
+
+      if (profilePhoto) {
+        updates.foto_perfil_url = await uploadFile(profilePhoto);
+      }
+      if (residenceFile) {
+        updates.comprovante_residencia_url = await uploadFile(residenceFile);
+      }
+      if (rgFile) {
+        await uploadFile(rgFile);
+      }
+      if (cpfFile) {
+        await uploadFile(cpfFile);
+      }
+
       const latitude = Number(form.latitude);
       const longitude = Number(form.longitude);
       const location = Number.isFinite(latitude) && Number.isFinite(longitude)
@@ -107,36 +156,53 @@ export default function ProfilePage() {
         : {};
 
       if (isElder) {
-        return eldersAPI.updateMe({
+        const response = await eldersAPI.updateMe({
           endereco: form.endereco,
           data_nascimento: form.data_nascimento,
           necessidades_especiais: form.necessidades_especiais || undefined,
           ...location,
+          ...updates,
         });
+        return { response, userUpdates: updates };
       }
 
       if (isVolunteer) {
-        return volunteersAPI.updateMe({
+        const response = await volunteersAPI.updateMe({
           disponibilidade: form.disponibilidade || undefined,
           area_atuacao: form.area_atuacao || undefined,
           ...location,
+          ...updates,
         });
+        return { response, userUpdates: updates };
       }
 
       if (isOng) {
-        return ongsAPI.updateMe({
+        const response = await ongsAPI.updateMe({
           cnpj: form.cnpj,
           responsavel: form.responsavel,
           telefone: form.telefone || undefined,
           ...location,
+          ...updates,
         });
+        return { response, userUpdates: updates };
       }
 
-      return Promise.resolve();
+      return { response: undefined, userUpdates: updates };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast({ title: 'Perfil atualizado com sucesso' });
+      if (user) {
+        updateUser({
+          ...user,
+          rg: rg.trim() || user.rg,
+          cpf: cpf.trim() || user.cpf,
+          ...(data?.userUpdates?.foto_perfil_url && { foto_perfil_url: data.userUpdates.foto_perfil_url }),
+          ...(data?.userUpdates?.comprovante_residencia_url && {
+            comprovante_residencia_url: data.userUpdates.comprovante_residencia_url,
+          }),
+        });
+      }
     },
     onError: (error: unknown) => {
       toast({
@@ -250,6 +316,39 @@ export default function ProfilePage() {
               </div>
             </>
           )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>RG</Label>
+              <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="Digite o RG" />
+            </div>
+            <div className="space-y-2">
+              <Label>CPF</Label>
+              <Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="Digite o CPF" />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Foto de perfil</Label>
+              <Input type="file" accept="image/*" onChange={(e) => setProfilePhoto(e.target.files?.[0] ?? null)} />
+            </div>
+            <div className="space-y-2">
+              <Label>RG (arquivo)</Label>
+              <Input type="file" onChange={(e) => setRgFile(e.target.files?.[0] ?? null)} />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>CPF (arquivo)</Label>
+              <Input type="file" onChange={(e) => setCpfFile(e.target.files?.[0] ?? null)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Comprovante de residência</Label>
+              <Input type="file" onChange={(e) => setResidenceFile(e.target.files?.[0] ?? null)} />
+            </div>
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">

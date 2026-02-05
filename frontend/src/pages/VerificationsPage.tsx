@@ -1,13 +1,21 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ShieldCheck, ShieldX, UserCheck, UserX } from 'lucide-react';
+import { CheckCircle2, FileText, ShieldCheck, ShieldX, UserCheck, UserX } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { User, verificationsAPI } from '@/lib/api';
+import { API_BASE_URL, filesAPI, User, usersAPI, verificationsAPI } from '@/lib/api';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error && typeof error === 'object' && 'response' in error) {
@@ -19,12 +27,15 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 export default function VerificationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDocsOpen, setIsDocsOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userFiles, setUserFiles] = useState<Array<{ id: string; url_arquivo?: string; tipo_mime?: string }>>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: volunteers = [], isLoading } = useQuery({
+  const { data: users = [], isLoading } = useQuery({
     queryKey: ['verifications', 'volunteers'],
-    queryFn: async () => (await verificationsAPI.getAll()).data,
+    queryFn: async () => (await usersAPI.getAll()).data,
   });
 
   const approveMutation = useMutation({
@@ -59,6 +70,44 @@ export default function VerificationsPage() {
     },
   });
 
+  const fetchDocsMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await filesAPI.getByEntity('user', userId);
+      return Array.isArray(response.data) ? response.data : [];
+    },
+    onSuccess: (data) => {
+      const normalized = data.map((item: { _id?: string; id?: string; url_arquivo?: string; tipo_mime?: string }) => ({
+        id: item._id ?? item.id ?? '',
+        url_arquivo: item.url_arquivo,
+        tipo_mime: item.tipo_mime,
+      }));
+      setUserFiles(normalized.filter((item) => item.id));
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Erro ao carregar documentos',
+        description: getErrorMessage(error, 'Tente novamente'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const openDocs = (user: User) => {
+    setSelectedUser(user);
+    setUserFiles([]);
+    setIsDocsOpen(true);
+    fetchDocsMutation.mutate(user.id);
+  };
+
+  const toAbsoluteUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}/${url}`;
+  };
+
+  const volunteers = useMemo(() => users.filter((user: User) => user.tipo_cadastro === 'voluntario'), [users]);
+
   const filtered = useMemo(() => {
     return volunteers.filter((user: User) => {
       const matchesName = user.nome?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -71,6 +120,7 @@ export default function VerificationsPage() {
   const verified = filtered.filter((user: User) => user.verificado);
 
   return (
+    <>
     <div className="space-y-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -135,6 +185,10 @@ export default function VerificationsPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openDocs(user)}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Ver documentos
+                    </Button>
                     <Button size="sm" onClick={() => approveMutation.mutate(user.id)}>
                       <UserCheck className="mr-2 h-4 w-4" />
                       Aprovar
@@ -190,7 +244,96 @@ export default function VerificationsPage() {
         </Card>
       </motion.div>
     </div>
+
+      <Dialog open={isDocsOpen} onOpenChange={setIsDocsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Documentos do usuário</DialogTitle>
+            <DialogDescription>
+              {selectedUser ? `${selectedUser.nome} • ${selectedUser.email}` : 'Usuário selecionado'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 text-sm">
+            <div className="grid gap-3">
+              <div>
+                <p className="font-medium">RG</p>
+                <p className="text-muted-foreground">{selectedUser?.rg || 'Não informado'}</p>
+              </div>
+              <div>
+                <p className="font-medium">CPF</p>
+                <p className="text-muted-foreground">{selectedUser?.cpf || 'Não informado'}</p>
+              </div>
+              <div>
+                <p className="font-medium">Foto de perfil</p>
+                {selectedUser?.foto_perfil_url ? (
+                  <a
+                    className="text-primary underline"
+                    href={toAbsoluteUrl(selectedUser.foto_perfil_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ver foto
+                  </a>
+                ) : (
+                  <p className="text-muted-foreground">Não enviada</p>
+                )}
+              </div>
+              <div>
+                <p className="font-medium">Comprovante de residência</p>
+                {selectedUser?.comprovante_residencia_url ? (
+                  <a
+                    className="text-primary underline"
+                    href={toAbsoluteUrl(selectedUser.comprovante_residencia_url)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ver comprovante
+                  </a>
+                ) : (
+                  <p className="text-muted-foreground">Não enviado</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="font-medium">Arquivos anexados</p>
+              {fetchDocsMutation.isPending && <p className="text-muted-foreground">Carregando...</p>}
+              {!fetchDocsMutation.isPending && userFiles.length === 0 && (
+                <p className="text-muted-foreground">Nenhum arquivo anexado.</p>
+              )}
+              {!fetchDocsMutation.isPending && userFiles.length > 0 && (
+                <ul className="space-y-1">
+                  {userFiles.map((file) => (
+                    <li key={file.id}>
+                      <a
+                        className="text-primary underline"
+                        href={toAbsoluteUrl(file.url_arquivo)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {file.tipo_mime || 'Arquivo'} ({file.id.slice(-6)})
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDocsOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
+
+
+
+
 
 

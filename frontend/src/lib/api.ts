@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000';
+export const API_BASE_URL = 'http://localhost:3000';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -87,6 +87,12 @@ const normalizeUser = (raw: unknown): User => {
     telefone: typeof data.telefone === 'string' ? data.telefone : undefined,
     foto_perfil_url:
       typeof data.foto_perfil_url === 'string' ? data.foto_perfil_url : undefined,
+    rg: typeof data.rg === 'string' ? data.rg : undefined,
+    cpf: typeof data.cpf === 'string' ? data.cpf : undefined,
+    comprovante_residencia_url:
+      typeof data.comprovante_residencia_url === 'string'
+        ? data.comprovante_residencia_url
+        : undefined,
     verificado: Boolean(data.verificado),
     ativo: data.ativo === undefined ? true : Boolean(data.ativo),
   };
@@ -131,10 +137,11 @@ const normalizeVolunteer = (raw: unknown): Volunteer => {
     id: getId(data),
     usuario_id: getId(data.usuario_id),
     usuario: userObject,
-    documentos_url:
-      typeof data.documentos_url === 'string'
-        ? data.documentos_url
-        : undefined,
+    documentos_url: Array.isArray(data.documentos_url)
+      ? data.documentos_url.filter((item) => typeof item === 'string') as string[]
+      : typeof data.documentos_url === 'string'
+      ? [data.documentos_url]
+      : undefined,
     disponibilidade:
       typeof data.disponibilidade === 'string' ? data.disponibilidade : undefined,
     area_atuacao:
@@ -267,29 +274,42 @@ export const authAPI = {
     })),
   register: (data: RegisterData) => api.post('/api/users/create-user', data),
   logout: () => api.post('/api/auth/logout'),
-  registerElderProfile: (data: ElderData) =>
+  registerElderProfile: (data: ElderData & UserDocumentsData) =>
     api
       .post('/api/auth/profiles/elder', {
         endereco: data.endereco,
         data_nascimento: data.data_nascimento,
         necessidades_especiais: data.necessidades_especiais,
         localizacao: toBackendLocation(data.latitude, data.longitude),
+        rg: data.rg,
+        cpf: data.cpf,
+        comprovante_residencia_url: data.comprovante_residencia_url,
+        foto_perfil_url: data.foto_perfil_url,
       })
       .then((response) => ({ ...response, data: normalizeElder(response.data) })),
-  registerVolunteerProfile: (data: VolunteerData) =>
+  registerVolunteerProfile: (data: VolunteerData & UserDocumentsData) =>
     api
       .post('/api/auth/profiles/volunteer', {
         disponibilidade: data.disponibilidade,
         area_atuacao: data.area_atuacao,
         localizacao: toBackendLocation(data.latitude, data.longitude),
+        documentos_url: data.documentos_url,
+        rg: data.rg,
+        cpf: data.cpf,
+        comprovante_residencia_url: data.comprovante_residencia_url,
+        foto_perfil_url: data.foto_perfil_url,
       })
       .then((response) => ({ ...response, data: normalizeVolunteer(response.data) })),
-  registerOngProfile: (data: Partial<ONG>) =>
+  registerOngProfile: (data: Partial<ONG> & UserDocumentsData) =>
     api.post('/api/auth/profiles/ong', {
       cnpj: data.cnpj,
       responsavel: data.responsavel,
       telefone: data.telefone,
       localizacao: toBackendLocation(data.latitude, data.longitude),
+      rg: data.rg,
+      cpf: data.cpf,
+      comprovante_residencia_url: data.comprovante_residencia_url,
+      foto_perfil_url: data.foto_perfil_url,
     }),
 };
 
@@ -486,6 +506,8 @@ export const filesAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  getByEntity: (entityType: string, entityId: string) =>
+    api.get(`/api/files/entity/${entityType}/${entityId}`),
   getById: (id: string) => api.get(`/api/files/${id}`),
   delete: (id: string) => api.delete(`/api/files/${id}`),
 };
@@ -574,7 +596,7 @@ export interface ElderData {
 }
 
 export interface VolunteerData {
-  documentos_url?: string;
+  documentos_url?: string[];
   disponibilidade?: string;
   area_atuacao?: string;
   latitude?: number;
@@ -617,6 +639,9 @@ export interface User {
   tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
   telefone?: string;
   foto_perfil_url?: string;
+  rg?: string;
+  cpf?: string;
+  comprovante_residencia_url?: string;
   verificado: boolean;
   ativo: boolean;
 }
@@ -636,7 +661,7 @@ export interface Volunteer {
   id: string;
   usuario_id: string;
   usuario?: User;
-  documentos_url?: string;
+  documentos_url?: string[];
   disponibilidade?: string;
   area_atuacao?: string;
   latitude?: number;
@@ -698,6 +723,13 @@ export interface ONG {
   latitude?: number;
   longitude?: number;
   ativo: boolean;
+}
+
+export interface UserDocumentsData {
+  rg?: string;
+  cpf?: string;
+  comprovante_residencia_url?: string;
+  foto_perfil_url?: string;
 }
 
 export default api;

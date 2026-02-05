@@ -1,10 +1,10 @@
-import { File, IFile } from "../models/File";
+﻿import { File, IFile } from "../models/File";
 import fs from "fs";
 import path from "path";
 
 const UPLOAD_DIR = path.join(__dirname, "../../uploads");
 
-// Garantir que o diretório de uploads existe
+// Garantir que o diretÃ³rio de uploads existe
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
@@ -30,8 +30,16 @@ export const deleteFile = async (id: string) => {
     const file = await File.findByIdAndDelete(id);
     
     // Deletar arquivo do disco
-    if (file && fs.existsSync(file.url_arquivo)) {
-        fs.unlinkSync(file.url_arquivo);
+    if (file) {
+        const rawPath = file.url_arquivo || "";
+        const localPath = rawPath.startsWith("/uploads/")
+            ? path.join(UPLOAD_DIR, path.basename(rawPath))
+            : rawPath.startsWith("uploads/")
+            ? path.join(UPLOAD_DIR, path.basename(rawPath))
+            : rawPath;
+        if (fs.existsSync(localPath)) {
+            fs.unlinkSync(localPath);
+        }
     }
     
     return file;
@@ -40,10 +48,16 @@ export const deleteFile = async (id: string) => {
 export const deleteFilesByEntity = async (entidade_tipo: string, entidade_id: string) => {
     const files = await File.find({ entidade_tipo, entidade_id });
     
-    // Aqui é para deletar os arquivos do disco
+    // Aqui Ã© para deletar os arquivos do disco
     files.forEach(file => {
-        if (fs.existsSync(file.url_arquivo)) {
-            fs.unlinkSync(file.url_arquivo);
+        const rawPath = file.url_arquivo || "";
+        const localPath = rawPath.startsWith("/uploads/")
+            ? path.join(UPLOAD_DIR, path.basename(rawPath))
+            : rawPath.startsWith("uploads/")
+            ? path.join(UPLOAD_DIR, path.basename(rawPath))
+            : rawPath;
+        if (fs.existsSync(localPath)) {
+            fs.unlinkSync(localPath);
         }
     });
     

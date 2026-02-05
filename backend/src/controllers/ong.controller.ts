@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import * as OngService from "../services/ong.service";
 import * as UserService from "../services/user.service";
 import { z } from "zod";
@@ -9,7 +9,7 @@ interface AuthRequest extends Request {
     user?: any;
 }
 
-// Esquema de validação para criação/atualização de ONG
+// Esquema de validaÃ§Ã£o para criaÃ§Ã£o/atualizaÃ§Ã£o de ONG
 const ongSchema = z.object({
     usuario_id: z.string(),
     nome: z.string(),
@@ -55,12 +55,12 @@ export const getOngs = async (req: Request, res: Response) => {
 
         if (id) {
             if (!mongoose.Types.ObjectId.isValid(id)) {
-                return res.status(400).json({ error: "ID invÃ¡lido" });
+                return res.status(400).json({ error: "ID invÃƒÂ¡lido" });
             }
 
             const ong = await OngService.getOngById(id);
             if (!ong) {
-                return res.status(404).json({ error: "ONG nÃ£o encontrada" });
+                return res.status(404).json({ error: "ONG nÃƒÂ£o encontrada" });
             }
             return res.json(ong);
         }
@@ -89,12 +89,12 @@ export const deleteOng = async (req: Request, res: Response) => {
             const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     
             if (!mongoose.Types.ObjectId.isValid(id)) {
-                return res.status(400).json({ error: "ID inválido" });
+                return res.status(400).json({ error: "ID invÃ¡lido" });
             }
     
             const ong = await OngService.getOngById(id);
             if (!ong) {
-                return res.status(404).json({ error: "ONG não encontrada" });
+                return res.status(404).json({ error: "ONG nÃ£o encontrada" });
             }
     
             const userId = ong.usuario_id._id?.toString();
@@ -105,7 +105,7 @@ export const deleteOng = async (req: Request, res: Response) => {
             // Neo4j: remove node do perfil
             await deleteNodeById('Ong', id);
     
-            // Deletar o usuário relacionado
+            // Deletar o usuÃ¡rio relacionado
             if (userId) {
                 try {
                     await UserService.deleteUser(userId);
@@ -113,13 +113,13 @@ export const deleteOng = async (req: Request, res: Response) => {
                     // Neo4j: remove node do usuario
                     await deleteNodeById('User', userId);
                 } catch (err) {
-                    console.error("Erro ao deletar o usuário:", err);
+                    console.error("Erro ao deletar o usuÃ¡rio:", err);
                 }
             }
     
             return res.status(200).json({
                 success: true,
-                message: "ONG e usuário deletados (ou ONG deletada, se houve problema no usuário).",
+                message: "ONG e usuÃ¡rio deletados (ou ONG deletada, se houve problema no usuÃ¡rio).",
                 ongId: id,
                 userId
             });
@@ -136,12 +136,12 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
         const usuario_id = req.user?.id;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
         const ong = await OngService.getOngByUserId(usuario_id);
         if (!ong) {
-            return res.status(404).json({ error: "Perfil de ONG não encontrado" });
+            return res.status(404).json({ error: "Perfil de ONG nÃ£o encontrado" });
         }
 
         res.json(ong);
@@ -156,28 +156,46 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
         const usuario_id = req.user?.id;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
-        const ong = await OngService.updateOngByUserId(usuario_id, req.body);
+        const {
+            rg,
+            cpf,
+            comprovante_residencia_url,
+            foto_perfil_url,
+            ...ongPayload
+        } = req.body ?? {};
+
+        const userUpdates: Record<string, unknown> = {};
+        if (rg) userUpdates.rg = rg;
+        if (cpf) userUpdates.cpf = cpf;
+        if (comprovante_residencia_url) userUpdates.comprovante_residencia_url = comprovante_residencia_url;
+        if (foto_perfil_url) userUpdates.foto_perfil_url = foto_perfil_url;
+
+        if (Object.keys(userUpdates).length > 0) {
+            await UserService.updateUser(usuario_id, userUpdates);
+        }
+
+        const ong = await OngService.updateOngByUserId(usuario_id, ongPayload);
         res.json(ong);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }
 };
 
-// Controlador para atualizar a localização da ONG autenticada
+// Controlador para atualizar a localizaÃ§Ã£o da ONG autenticada
 export const updateMyLocation = async (req: AuthRequest, res: Response) => {
     try {
         const usuario_id = req.user?.id;
         const { latitude, longitude } = req.body;
 
         if (!usuario_id) {
-            return res.status(401).json({ error: "Usuário não autenticado" });
+            return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
         }
 
         if (typeof latitude !== "number" || typeof longitude !== "number") {
-            return res.status(400).json({ error: "Latitude e longitude são obrigatórias e devem ser números" });
+            return res.status(400).json({ error: "Latitude e longitude sÃ£o obrigatÃ³rias e devem ser nÃºmeros" });
         }
 
         const updateData = {

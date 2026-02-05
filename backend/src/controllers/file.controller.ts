@@ -25,10 +25,11 @@ export const uploadFile = async (req: FileRequest, res: Response) => {
             return res.status(401).json({ error: "Usuário não autenticado" });
         }
 
+        const relativeUrl = `/uploads/${req.file.filename}`;
         const file = await FileService.uploadFile({
             entidade_tipo,
             entidade_id: entidade_id as any,
-            url_arquivo: req.file.path,
+            url_arquivo: relativeUrl,
             tipo_mime: req.file.mimetype,
             tamanho: req.file.size,
             usuario_id: usuario_id as any,

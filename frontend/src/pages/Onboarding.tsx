@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { authAPI } from '@/lib/api';
+import { authAPI, filesAPI, API_BASE_URL } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import LocationPickerMap from '@/components/LocationPickerMap';
 
@@ -24,6 +24,13 @@ export default function Onboarding() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coords, setCoords] = useState<Coordenadas>({ latitude: '', longitude: '' });
+  const [rg, setRg] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [rgFile, setRgFile] = useState<File | null>(null);
+  const [cpfFile, setCpfFile] = useState<File | null>(null);
+  const [residenceFile, setResidenceFile] = useState<File | null>(null);
+  const [volunteerDocs, setVolunteerDocs] = useState<File[]>([]);
 
   const [elderForm, setElderForm] = useState({
     endereco: '',
@@ -81,6 +88,20 @@ export default function Onboarding() {
   const mapLatitude = Number.isFinite(parsedLatitude) ? parsedLatitude : undefined;
   const mapLongitude = Number.isFinite(parsedLongitude) ? parsedLongitude : undefined;
 
+  const toAbsoluteUrl = (url: string) => {
+    if (!url) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}/${url}`;
+  };
+
+  const uploadFile = async (file: File) => {
+    if (!user) throw new Error('Usuário não autenticado');
+    const response = await filesAPI.upload(file, 'user', user.id);
+    const url = response.data?.file?.url ?? '';
+    return toAbsoluteUrl(url);
+  };
+
   const handleSubmit = async () => {
     const parsed = parseCoords();
     if (!parsed) {
@@ -92,8 +113,27 @@ export default function Onboarding() {
       return;
     }
 
+    if (!rg.trim() || !cpf.trim() || !profilePhoto || !rgFile || !cpfFile || !residenceFile) {
+      toast({
+        title: 'Documentos obrigatórios',
+        description: 'Anexe foto de perfil, RG, CPF e comprovante de residência.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      const [photoUrl, rgUrl, cpfUrl, residenceUrl] = await Promise.all([
+        uploadFile(profilePhoto),
+        uploadFile(rgFile),
+        uploadFile(cpfFile),
+        uploadFile(residenceFile),
+      ]);
+      const extraDocs = volunteerDocs.length
+        ? await Promise.all(volunteerDocs.map((file) => uploadFile(file)))
+        : [];
+
       if (user.tipo_cadastro === 'idoso') {
         if (!elderForm.endereco || !elderForm.data_nascimento) {
           toast({
@@ -109,6 +149,10 @@ export default function Onboarding() {
           necessidades_especiais: elderForm.necessidades_especiais || undefined,
           latitude: parsed.latitude,
           longitude: parsed.longitude,
+          rg: rg.trim(),
+          cpf: cpf.trim(),
+          comprovante_residencia_url: residenceUrl,
+          foto_perfil_url: photoUrl,
         });
       } else if (user.tipo_cadastro === 'voluntario') {
         await authAPI.registerVolunteerProfile({
@@ -116,6 +160,11 @@ export default function Onboarding() {
           area_atuacao: volunteerForm.area_atuacao || undefined,
           latitude: parsed.latitude,
           longitude: parsed.longitude,
+          documentos_url: extraDocs,
+          rg: rg.trim(),
+          cpf: cpf.trim(),
+          comprovante_residencia_url: residenceUrl,
+          foto_perfil_url: photoUrl,
         });
       } else {
         if (!ongForm.cnpj || !ongForm.responsavel) {
@@ -132,10 +181,21 @@ export default function Onboarding() {
           telefone: ongForm.telefone || undefined,
           latitude: parsed.latitude,
           longitude: parsed.longitude,
+          rg: rg.trim(),
+          cpf: cpf.trim(),
+          comprovante_residencia_url: residenceUrl,
+          foto_perfil_url: photoUrl,
         });
       }
 
-      updateUser({ ...user, ativo: true });
+      updateUser({
+        ...user,
+        ativo: true,
+        rg: rg.trim(),
+        cpf: cpf.trim(),
+        comprovante_residencia_url: residenceUrl,
+        foto_perfil_url: photoUrl,
+      });
       toast({
         title: 'Perfil criado com sucesso',
         description: 'Agora sua conta aguarda validação.',
@@ -248,6 +308,53 @@ export default function Onboarding() {
                 />
               </div>
             </>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>RG</Label>
+              <Input value={rg} onChange={(e) => setRg(e.target.value)} placeholder="Digite o RG" />
+            </div>
+            <div className="space-y-2">
+              <Label>CPF</Label>
+              <Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="Digite o CPF" />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Foto de perfil</Label>
+              <Input type="file" accept="image/*" onChange={(e) => setProfilePhoto(e.target.files?.[0] ?? null)} />
+            </div>
+            <div className="space-y-2">
+              <Label>RG (arquivo)</Label>
+              <Input type="file" onChange={(e) => setRgFile(e.target.files?.[0] ?? null)} />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>CPF (arquivo)</Label>
+              <Input type="file" onChange={(e) => setCpfFile(e.target.files?.[0] ?? null)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Comprovante de residência</Label>
+              <Input type="file" onChange={(e) => setResidenceFile(e.target.files?.[0] ?? null)} />
+            </div>
+          </div>
+
+          {user.tipo_cadastro === 'voluntario' && (
+            <div className="space-y-2">
+              <Label>Documentos adicionais (opcional)</Label>
+              <Input
+                type="file"
+                multiple
+                onChange={(e) => setVolunteerDocs(Array.from(e.target.files ?? []))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Anexe outros documentos que ajudem na validação.
+              </p>
+            </div>
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
