@@ -22,17 +22,29 @@ const getId = (value: unknown): string => {
 const parseCoordinates = (
   raw: Record<string, unknown>
 ): { latitude?: number; longitude?: number } => {
+  const toNumber = (value: unknown): number | undefined => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return undefined;
+  };
+
   const localizacao = raw.localizacao as
-    | { coordinates?: [number, number] }
+    | { coordinates?: [unknown, unknown] }
     | undefined;
   if (localizacao?.coordinates?.length === 2) {
-    const [longitude, latitude] = localizacao.coordinates;
-    return { latitude, longitude };
+    const [longitudeRaw, latitudeRaw] = localizacao.coordinates;
+    const longitude = toNumber(longitudeRaw);
+    const latitude = toNumber(latitudeRaw);
+    if (longitude !== undefined && latitude !== undefined) {
+      return { latitude, longitude };
+    }
   }
 
-  const latitude = typeof raw.latitude === 'number' ? raw.latitude : undefined;
-  const longitude =
-    typeof raw.longitude === 'number' ? raw.longitude : undefined;
+  const latitude = toNumber(raw.latitude);
+  const longitude = toNumber(raw.longitude);
   return { latitude, longitude };
 };
 
@@ -320,6 +332,11 @@ export const usersAPI = {
         ? response.data.map(normalizeUser)
         : [],
     })),
+  updateMe: (data: UpdateUserData) =>
+    api.put('/api/users/me/update', data).then((response) => ({
+      ...response,
+      data: normalizeUser(response.data?.user ?? response.data),
+    })),
   getById: (id: string) =>
     api.get('/api/users/list-users').then((response) => {
       const users = Array.isArray(response.data)
@@ -585,6 +602,8 @@ export interface UpdateUserData {
   email?: string;
   senha?: string;
   telefone?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface ElderData {
@@ -734,4 +753,3 @@ export interface UserDocumentsData {
 }
 
 export default api;
-

@@ -85,7 +85,7 @@ export default function Index() {
                 </Button>
               </Link>
               <Link to="/login">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10">
+                <Button size="lg" className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10">
                   Já tenho conta
                 </Button>
               </Link>

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, HandHeart, MapPin, UserCircle } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { eldersAPI, filesAPI, ongsAPI, volunteersAPI, API_BASE_URL } from '@/lib/api';
+import { eldersAPI, filesAPI, ongsAPI, usersAPI, volunteersAPI, API_BASE_URL } from '@/lib/api';
 import { formatCnpj, formatCpf, formatPhone, formatRg } from '@/lib/format';
 import { useAuth } from '@/contexts/AuthContext';
 import LocationPickerMap from '@/components/LocationPickerMap';
@@ -27,9 +27,10 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const isElder = user?.papel === 'idoso';
-  const isVolunteer = user?.papel === 'voluntario';
-  const isOng = user?.papel === 'ong';
+  const profileType = user?.tipo_cadastro;
+  const isElder = profileType === 'idoso';
+  const isVolunteer = profileType === 'voluntario';
+  const isOng = profileType === 'ong';
 
   const { data: elderProfile } = useQuery({
     queryKey: ['profile', 'elder'],
@@ -61,12 +62,20 @@ export default function ProfilePage() {
     latitude: '',
     longitude: '',
   });
+  const [userForm, setUserForm] = useState({
+    nome: '',
+    email: '',
+    telefone: '',
+  });
+  const [hasPrefilledUserForm, setHasPrefilledUserForm] = useState(false);
   const [rg, setRg] = useState('');
   const [cpf, setCpf] = useState('');
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [rgFile, setRgFile] = useState<File | null>(null);
   const [cpfFile, setCpfFile] = useState<File | null>(null);
   const [residenceFile, setResidenceFile] = useState<File | null>(null);
+  const [prefillSource, setPrefillSource] = useState<'user' | 'profile' | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
     if (elderProfile) {
@@ -106,12 +115,79 @@ export default function ProfilePage() {
     }
   }, [ongProfile]);
 
+  const profileUser = elderProfile?.usuario ?? volunteerProfile?.usuario ?? ongProfile?.usuario;
+
   useEffect(() => {
-    if (user) {
-      setRg(user.rg ?? '');
-      setCpf(user.cpf ?? '');
+    const sourceUser = profileUser ?? user;
+    if (!hasPrefilledUserForm && sourceUser) {
+      setUserForm({
+        nome: sourceUser.nome ?? '',
+        email: sourceUser.email ?? '',
+        telefone: sourceUser.telefone ? formatPhone(sourceUser.telefone) : '',
+      });
+      setHasPrefilledUserForm(true);
     }
-  }, [user]);
+
+    if (profileUser && prefillSource !== 'profile') {
+      setRg(profileUser.rg ? formatRg(profileUser.rg) : '');
+      setCpf(profileUser.cpf ? formatCpf(profileUser.cpf) : '');
+      setPrefillSource('profile');
+      return;
+    }
+
+    if (!profileUser && user && prefillSource === null && !rg && !cpf) {
+      setRg(user.rg ? formatRg(user.rg) : '');
+      setCpf(user.cpf ? formatCpf(user.cpf) : '');
+      setPrefillSource('user');
+    }
+  }, [cpf, hasPrefilledUserForm, prefillSource, profileUser, rg, user]);
+
+  const applyCoordinates = useCallback((latitude: number, longitude: number) => {
+    setForm((prev) => ({
+      ...prev,
+      latitude: latitude.toFixed(6),
+      longitude: longitude.toFixed(6),
+    }));
+  }, []);
+
+  const requestCurrentLocation = useCallback(
+    (options?: { silent?: boolean }) => {
+      if (!navigator.geolocation) {
+        if (!options?.silent) {
+          toast({
+            title: 'Localização indisponível',
+            description: 'Seu navegador não suporta geolocalização.',
+            variant: 'destructive',
+          });
+        }
+        return;
+      }
+
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          applyCoordinates(position.coords.latitude, position.coords.longitude);
+          setIsLocating(false);
+          if (!options?.silent) {
+            toast({ title: 'Localização atualizada' });
+          }
+        },
+        (error) => {
+          setIsLocating(false);
+          if (!options?.silent) {
+            toast({
+              title: 'Não foi possível obter a localização',
+              description: error.message || 'Tente novamente.',
+              variant: 'destructive',
+            });
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    },
+    [applyCoordinates, toast]
+  );
+
 
   const toAbsoluteUrl = (url: string) => {
     if (!url) return url;
@@ -134,6 +210,11 @@ export default function ProfilePage() {
         cpf?: string;
         comprovante_residencia_url?: string;
         foto_perfil_url?: string;
+      } = {};
+      const userUpdates: {
+        nome?: string;
+        email?: string;
+        telefone?: string;
       } = {};
       if (!isOng) {
         if (rg.trim()) updates.rg = rg.trim();
@@ -181,6 +262,27 @@ export default function ProfilePage() {
         ? { latitude, longitude }
         : {};
 
+      if (user) {
+        const nomeTrimmed = userForm.nome.trim();
+        const emailTrimmed = userForm.email.trim();
+        const telefoneTrimmed = userForm.telefone.trim();
+
+        if (nomeTrimmed && nomeTrimmed !== user.nome) userUpdates.nome = nomeTrimmed;
+        if (emailTrimmed && emailTrimmed !== user.email) userUpdates.email = emailTrimmed;
+        if (telefoneTrimmed && telefoneTrimmed !== (user.telefone ?? '')) {
+          userUpdates.telefone = telefoneTrimmed;
+        }
+      }
+
+      const shouldSendLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
+      const shouldUpdateUser = Object.keys(userUpdates).length > 0 || shouldSendLocation;
+      const updatedUserResponse = shouldUpdateUser
+        ? await usersAPI.updateMe({
+            ...userUpdates,
+            ...(shouldSendLocation ? { latitude, longitude } : {}),
+          })
+        : undefined;
+
       if (isElder) {
         const response = await eldersAPI.updateMe({
           endereco: form.endereco,
@@ -189,7 +291,7 @@ export default function ProfilePage() {
           ...location,
           ...updates,
         });
-        return { response, userUpdates: updates };
+        return { response, userUpdates: updates, updatedUser: updatedUserResponse?.data };
       }
 
       if (isVolunteer) {
@@ -199,7 +301,7 @@ export default function ProfilePage() {
           ...location,
           ...updates,
         });
-        return { response, userUpdates: updates };
+        return { response, userUpdates: updates, updatedUser: updatedUserResponse?.data };
       }
 
       if (isOng) {
@@ -210,18 +312,19 @@ export default function ProfilePage() {
           ...location,
           ...updates,
         });
-        return { response, userUpdates: updates };
+        return { response, userUpdates: updates, updatedUser: updatedUserResponse?.data };
       }
 
-      return { response: undefined, userUpdates: updates };
+      return { response: undefined, userUpdates: updates, updatedUser: updatedUserResponse?.data };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast({ title: 'Perfil atualizado com sucesso' });
-      if (user) {
+      const baseUser = data?.updatedUser ?? user;
+      if (baseUser) {
         updateUser({
-          ...user,
-          ...(isOng ? {} : { rg: rg.trim() || user.rg, cpf: cpf.trim() || user.cpf }),
+          ...baseUser,
+          ...(isOng ? {} : { rg: rg.trim() || baseUser.rg, cpf: cpf.trim() || baseUser.cpf }),
           ...(data?.userUpdates?.foto_perfil_url && { foto_perfil_url: data.userUpdates.foto_perfil_url }),
           ...(data?.userUpdates?.comprovante_residencia_url && {
             comprovante_residencia_url: data.userUpdates.comprovante_residencia_url,
@@ -249,6 +352,7 @@ export default function ProfilePage() {
   const parsedLongitude = Number(form.longitude);
   const mapLatitude = Number.isFinite(parsedLatitude) ? parsedLatitude : undefined;
   const mapLongitude = Number.isFinite(parsedLongitude) ? parsedLongitude : undefined;
+  const isAdmin = user?.papel === 'admin';
 
   return (
     <div className="space-y-6">
@@ -269,6 +373,33 @@ export default function ProfilePage() {
           <CardTitle className="font-display">Dados do perfil</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                value={userForm.nome}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, nome: e.target.value }))}
+                placeholder="Digite seu nome"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={userForm.email}
+                onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="Digite seu email"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Telefone</Label>
+            <Input
+              value={userForm.telefone}
+              onChange={(e) => setUserForm((prev) => ({ ...prev, telefone: formatPhone(e.target.value) }))}
+              placeholder="Digite seu telefone"
+            />
+          </div>
           {isElder && (
             <>
               <div className="space-y-2">
@@ -401,49 +532,57 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Latitude</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  value={form.latitude}
-                  onChange={(e) => setForm((prev) => ({ ...prev, latitude: e.target.value }))}
-                />
+          {!isAdmin && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Latitude</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      className="pl-9"
+                      value={form.latitude}
+                      onChange={(e) => setForm((prev) => ({ ...prev, latitude: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Longitude</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      className="pl-9"
+                      value={form.longitude}
+                      onChange={(e) => setForm((prev) => ({ ...prev, longitude: e.target.value }))}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Longitude</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  value={form.longitude}
-                  onChange={(e) => setForm((prev) => ({ ...prev, longitude: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label>{isOng ? 'Selecione o Local da ong' : 'Selecione no mapa'}</Label>
-            <p className="text-xs text-muted-foreground">
-              Clique no mapa para preencher latitude e longitude automaticamente.
-            </p>
-            <LocationPickerMap
-              latitude={mapLatitude}
-              longitude={mapLongitude}
-              onChange={(lat, lng) =>
-                setForm((prev) => ({
-                  ...prev,
-                  latitude: lat.toFixed(6),
-                  longitude: lng.toFixed(6),
-                }))
-              }
-              height={240}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label>{isOng ? 'Selecione o Local da ong' : 'Selecione no mapa'}</Label>
+                <p className="text-xs text-muted-foreground">
+                  Clique no mapa para preencher latitude e longitude automaticamente.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => requestCurrentLocation()}
+                  disabled={isLocating}
+                  className="mb-3"
+                >
+                  {isLocating ? 'Localizando...' : 'Usar localização atual'}
+                </Button>
+                <LocationPickerMap
+                  latitude={mapLatitude}
+                  longitude={mapLongitude}
+                  onChange={(lat, lng) => applyCoordinates(lat, lng)}
+                  height={240}
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex justify-end">
             <Button onClick={() => updateProfileMutation.mutate()} disabled={updateProfileMutation.isPending}>

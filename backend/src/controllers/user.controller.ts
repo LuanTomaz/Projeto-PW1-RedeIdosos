@@ -1,5 +1,8 @@
 ﻿import { Request, Response } from "express";
 import * as UserService from "../services/user.service";
+import * as ElderService from "../services/elder.service";
+import * as VolunteerService from "../services/volunteer.service";
+import * as OngService from "../services/ong.service";
 import { z } from "zod";
 import { User } from "../models/User";
 import { Volunteer } from "../models/Volunteer";
@@ -180,6 +183,52 @@ export const updateUserController = async (req: Request, res: Response) => {
     const payload = schema.parse(req.body ?? {});
     const user = await UserService.updateUser(id, payload);
     res.json({ message: "Status do usuÃ¡rio atualizado", user });
+  } catch (err: any) {
+    res.status(400).json({ error: err.errors ?? err.message });
+  }
+};
+
+// Endpoint para atualizar dados do usuÃ¡rio autenticado
+export const updateMyUserController = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any).user ?? {};
+    const id = authUser?.id;
+    if (!id) {
+      return res.status(401).json({ error: "UsuÃ¡rio nÃ£o autenticado" });
+    }
+
+    const schema = z.object({
+      nome: z.string().min(3).optional(),
+      email: z.string().email().optional(),
+      telefone: z
+        .string()
+        .optional()
+        .transform((value) => (value && value.trim() !== "" ? value : undefined)),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
+    });
+    const payload = schema.parse(req.body ?? {});
+    const { latitude, longitude, ...userPayload } = payload;
+    const user = await UserService.updateUser(id, userPayload);
+
+    if (typeof latitude === "number" && typeof longitude === "number") {
+      const locationPayload = {
+        localizacao: {
+          type: "Point",
+          coordinates: [longitude, latitude] as [number, number],
+        },
+      };
+      const tipoCadastro = authUser?.tipo_cadastro;
+      if (tipoCadastro === "idoso") {
+        await ElderService.updateElderByUserId(id, locationPayload);
+      } else if (tipoCadastro === "voluntario") {
+        await VolunteerService.updateVolunteerByUserId(id, locationPayload);
+      } else if (tipoCadastro === "ong") {
+        await OngService.updateOngByUserId(id, locationPayload);
+      }
+    }
+
+    res.json({ message: "UsuÃ¡rio atualizado com sucesso", user });
   } catch (err: any) {
     res.status(400).json({ error: err.errors ?? err.message });
   }

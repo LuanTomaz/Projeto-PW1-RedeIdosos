@@ -1,5 +1,5 @@
 ﻿import { Router } from 'express';
-import { createUser, getUsers, validateUserController, blockUser, updateUserStatus, updateUserController, deleteUserController, getVolunteers, getElders, getOngs, getAdmins, getUnverifiedVolunteers, promoteToAdmin, devActivateUser } from '../controllers/user.controller';
+import { createUser, getUsers, validateUserController, blockUser, updateUserStatus, updateUserController, updateMyUserController, deleteUserController, getVolunteers, getElders, getOngs, getAdmins, getUnverifiedVolunteers, promoteToAdmin, devActivateUser } from '../controllers/user.controller';
 import { verifyToken } from '../middlewares/auth_middleware';
 import { authorize } from '../middlewares/authorization.middleware';
 import { requireActiveUser } from '../middlewares/status';
@@ -53,6 +53,15 @@ router.put(
     authorize('admin'),
     requireActiveUser,
     updateUserStatus
+);
+
+// Endpoint para atualizar dados do usuÃ¡rio autenticado
+router.put(
+    '/me/update',
+    verifyToken,
+    authorize('admin', 'ong', 'voluntario', 'idoso', 'pending'),
+    requireActiveUser,
+    updateMyUserController
 );
 
 // Endpoint para atualizar dados do usuÃ¡rio
