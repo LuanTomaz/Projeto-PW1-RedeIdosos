@@ -179,9 +179,25 @@ const normalizeCompanionship = (raw: unknown): Companionship => {
     longitude: longitude ?? 0,
     local_descricao: String(data.local_descricao ?? ''),
     status: statusToFrontend(String(data.status ?? 'pendente')) ?? 'pendente',
+    foto_solicitacao_url:
+      typeof data.foto_solicitacao_url === 'string'
+        ? data.foto_solicitacao_url
+        : undefined,
     foto_comprovante_url:
       typeof data.foto_comprovante_url === 'string'
         ? data.foto_comprovante_url
+        : undefined,
+    inicio_companhia:
+      typeof data.inicio_companhia === 'string'
+        ? data.inicio_companhia
+        : data.inicio_companhia instanceof Date
+        ? data.inicio_companhia.toISOString()
+        : undefined,
+    fim_companhia:
+      typeof data.fim_companhia === 'string'
+        ? data.fim_companhia
+        : data.fim_companhia instanceof Date
+        ? data.fim_companhia.toISOString()
         : undefined,
     created_at: String(data.createdAt ?? data.created_at ?? ''),
     updated_at: String(data.updatedAt ?? data.updated_at ?? ''),
@@ -273,7 +289,7 @@ export const authAPI = {
         user: normalizeUser(response.data?.user),
       },
     })),
-  register: (data: RegisterData) => api.post('/api/users/create-user', data),
+  register: (data: RegisterData) => api.post('/api/users', data),
   logout: () => api.post('/api/auth/logout'),
   registerElderProfile: (data: ElderData & UserDocumentsData) =>
     api
@@ -314,40 +330,41 @@ export const authAPI = {
 
 export const usersAPI = {
   getAll: (role?: string) =>
-    api.get('/api/users/list-users', { params: { papel: role } }).then((response) => ({
+    api.get('/api/users', { params: { papel: role } }).then((response) => ({
       ...response,
       data: Array.isArray(response.data)
         ? response.data.map(normalizeUser)
         : [],
     })),
   getById: (id: string) =>
-    api.get('/api/users/list-users').then((response) => {
+    api.get('/api/users').then((response) => {
       const users = Array.isArray(response.data)
         ? response.data.map(normalizeUser)
         : [];
       return { ...response, data: users.find((user) => user.id === id) };
     }),
-  create: (data: CreateUserData) => api.post('/api/users/create-user', data),
-  updateRole: (id: string) => api.put(`/api/users/${id}/promote-admin`),
+  create: (data: CreateUserData) => api.post('/api/users', data),
+  updateRole: (id: string, role: string = 'admin') =>
+    api.put(`/api/users/${id}/role`, { role }),
   updateStatus: (id: string, ativo: boolean) =>
     api.put(`/api/users/${id}/status`, { ativo }),
   update: (id: string, data: UpdateUserData) =>
     api.put(`/api/users/${id}/update`, data),
   validate: (id: string) => api.put(`/api/users/${id}/validate`),
   verify: (id: string) => api.put(`/api/users/${id}/validate`),
-  delete: (id: string) => api.delete(`/api/users/${id}/delete`),
+  delete: (id: string) => api.delete(`/api/users/${id}`),
 };
 
 export const eldersAPI = {
   getAll: () =>
-    api.get('/api/elders/get-elders').then((response) => ({
+    api.get('/api/elders').then((response) => ({
       ...response,
       data: Array.isArray(response.data)
         ? response.data.map(normalizeElder)
         : [],
     })),
   getMe: () =>
-    api.get('/api/elders/me/profile').then((response) => ({
+    api.get('/api/elders/me').then((response) => ({
       ...response,
       data: normalizeElder(response.data),
     })),
@@ -358,77 +375,97 @@ export const eldersAPI = {
     })),
   updateMe: (data: Partial<ElderData>) =>
     api
-      .put('/api/elders/me/update', {
+      .put('/api/elders/me', {
         ...data,
         localizacao: toBackendLocation(data.latitude, data.longitude),
       })
       .then((response) => ({ ...response, data: normalizeElder(response.data) })),
   updateLocation: (latitude: number, longitude: number) =>
     api.put('/api/elders/me/location', { latitude, longitude }),
-  delete: (id: string) => api.delete(`/api/elders/${id}/delete-elder`),
+  delete: (id: string) => api.delete(`/api/elders/${id}`),
 };
 
 export const volunteersAPI = {
   getAll: () =>
-    api.get('/api/volunteers/list').then((response) => ({
+    api.get('/api/volunteers').then((response) => ({
       ...response,
       data: Array.isArray(response.data)
         ? response.data.map(normalizeVolunteer)
         : [],
     })),
   getMe: () =>
-    api.get('/api/volunteers/me/profile').then((response) => ({
+    api.get('/api/volunteers/me').then((response) => ({
       ...response,
       data: normalizeVolunteer(response.data),
     })),
   updateMe: (data: Partial<VolunteerData>) =>
     api
-      .put('/api/volunteers/update-profile', {
+      .put('/api/volunteers/me', {
         ...data,
         localizacao: toBackendLocation(data.latitude, data.longitude),
       })
       .then((response) => ({ ...response, data: normalizeVolunteer(response.data) })),
   updateLocation: (latitude: number, longitude: number) =>
-    api.put('/api/volunteers/update-location', { latitude, longitude }),
-  delete: (id: string) => api.delete(`/api/volunteers/${id}/delete`),
+    api.put('/api/volunteers/me/location', { latitude, longitude }),
+  delete: (id: string) => api.delete(`/api/volunteers/${id}`),
 };
 
 export const companionshipsAPI = {
   getAll: () =>
-    api.get('/api/companionships/list-companionships').then((response) => ({
+    api.get('/api/companionships').then((response) => ({
       ...response,
       data: Array.isArray(response.data)
         ? response.data.map(normalizeCompanionship)
         : [],
     })),
   getById: (id: string) =>
-    api.get('/api/companionships/list-companionships').then((response) => {
-      const items = Array.isArray(response.data)
-        ? response.data.map(normalizeCompanionship)
-        : [];
-      return { ...response, data: items.find((item) => item.id === id) };
-    }),
+    api.get(`/api/companionships/${id}`).then((response) => ({
+      ...response,
+      data: normalizeCompanionship(response.data),
+    })),
   getMine: () =>
-    api.get('/api/companionships/my-companionships').then((response) => ({
+    api.get('/api/companionships/me').then((response) => ({
       ...response,
       data: Array.isArray(response.data)
         ? response.data.map(normalizeCompanionship)
         : [],
     })),
   getNearby: (lat: number, lng: number) =>
-    api.get('/api/companionships/list-companionships', { params: { lat, lng } }).then((response) => ({
+    api.get('/api/map/companionships/nearby', { params: { lat, lng } }).then((response) => ({
       ...response,
       data: Array.isArray(response.data)
         ? response.data.map(normalizeCompanionship)
         : [],
     })),
-  create: (data: CompanionshipData) =>
-    api
-      .post('/api/companionships/create-companionship', {
-        ...data,
-        localizacao: toBackendLocation(data.latitude, data.longitude),
+  create: (data: CompanionshipData, fotoSolicitacao?: File) => {
+    const location = toBackendLocation(data.latitude, data.longitude);
+    if (!fotoSolicitacao) {
+      return api
+        .post('/api/companionships', {
+          ...data,
+          localizacao: location,
+        })
+        .then((response) => ({ ...response, data: normalizeCompanionship(response.data) }));
+    }
+
+    const formData = new FormData();
+    if (data.idoso_id) formData.append('idoso_id', data.idoso_id);
+    if (data.voluntario_id) formData.append('voluntario_id', data.voluntario_id);
+    formData.append('atividade', data.atividade);
+    formData.append('descricao', data.descricao);
+    formData.append('data', data.data);
+    formData.append('hora', data.hora);
+    formData.append('local_descricao', data.local_descricao);
+    if (location) {
+      formData.append('localizacao', JSON.stringify(location));
+    }
+    formData.append('foto_solicitacao', fotoSolicitacao);
+    return api
+      .post('/api/companionships', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
-      .then((response) => ({ ...response, data: normalizeCompanionship(response.data) })),
+      .then((response) => ({ ...response, data: normalizeCompanionship(response.data) }));
+  },
   update: (id: string, data: Partial<CompanionshipData>) =>
     api
       .put(`/api/companionships/${id}/update`, {
@@ -461,14 +498,14 @@ export const companionshipsAPI = {
 
 export const reviewsAPI = {
   getAll: () =>
-    api.get('/api/reviews/view-reviews').then((response) => ({
+    api.get('/api/reviews').then((response) => ({
       ...response,
       data: Array.isArray(response.data)
         ? response.data.map(normalizeReview)
         : [],
     })),
   getMine: () =>
-    api.get('/api/reviews/view-reviews').then((response) => ({
+    api.get('/api/reviews').then((response) => ({
       ...response,
       data: Array.isArray(response.data)
         ? response.data.map(normalizeReview)
@@ -486,7 +523,7 @@ export const reviewsAPI = {
     formData.append('nota', String(data.nota));
     if (data.comentario) formData.append('comentario', data.comentario);
     if (foto) formData.append('foto', foto);
-    return api.post('/api/reviews/create-review', formData, {
+    return api.post('/api/reviews', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
@@ -512,19 +549,19 @@ export const filesAPI = {
 };
 
 export const verificationsAPI = {
-  getAll: () => usersAPI.getAll('voluntario'),
-  approve: (id: string) => api.put(`/api/users/${id}/validate`),
-  delete: (id: string) => api.put(`/api/users/${id}/block-user`),
+  getAll: () => api.get('/api/verifications'),
+  approve: (id: string) => api.put(`/api/verifications/${id}/approve`),
+  delete: (id: string) => api.delete(`/api/verifications/${id}`),
 };
 
 export const ongsAPI = {
   getAll: () =>
-    api.get('/api/ongs/list-ongs').then((response) => ({
+    api.get('/api/ongs').then((response) => ({
       ...response,
       data: Array.isArray(response.data) ? response.data.map(normalizeOng) : [],
     })),
   getById: (id: string) =>
-    api.get('/api/ongs/list-ongs', { params: { id } }).then((response) => ({
+    api.get('/api/ongs', { params: { id } }).then((response) => ({
       ...response,
       data: normalizeOng(response.data),
     })),
@@ -545,21 +582,24 @@ export const ongsAPI = {
 };
 
 export const mapAPI = {
-  getCompanionships: () => companionshipsAPI.getAll(),
-  getElders: () => eldersAPI.getAll(),
-  getVolunteers: () => volunteersAPI.getAll(),
+  getCompanionships: () => api.get('/api/map/companionships'),
+  getElders: () => api.get('/api/map/elders'),
+  getVolunteers: () => api.get('/api/map/volunteers'),
   getNearbyCompanionships: (lat: number, lng: number) =>
-    api.get('/api/companionships/list-companionships', { params: { lat, lng } }),
-  getMyCompanionships: () => companionshipsAPI.getMine(),
+    api.get('/api/map/companionships/nearby', { params: { lat, lng } }),
+  getMyCompanionships: () => api.get('/api/map/companionships/me'),
 };
 
 export const reportsAPI = {
-  getSummary: (from?: string, to?: string) =>
+  getMine: (from?: string, to?: string) =>
     api.get('/api/reports/my-reports', { params: { from, to } }),
-  getStatistics: () => api.get('/api/reports/all-reports'),
-  getLocations: () => api.get('/api/reports/type/locations'),
-  getElders: () => api.get('/api/reports/type/elders'),
-  getImpact: () => api.get('/api/reports/type/impact'),
+  getAll: () => api.get('/api/reports/all-reports'),
+  getSummary: (from?: string, to?: string) =>
+    api.get('/api/reports/summary', { params: { from, to } }),
+  getStatistics: () => api.get('/api/reports/statistics'),
+  getLocations: () => api.get('/api/reports/locations'),
+  getElders: () => api.get('/api/reports/elders'),
+  getImpact: () => api.get('/reports/impact'),
   create: (data: ReportData) => api.post('/api/reports/create-report', data),
 };
 
@@ -615,6 +655,7 @@ export interface CompanionshipData {
   local_descricao: string;
   status?: string;
   foto_comprovante_url?: string;
+  foto_solicitacao_url?: string;
 }
 
 export interface ReviewData {
@@ -683,7 +724,10 @@ export interface Companionship {
   longitude: number;
   local_descricao: string;
   status: 'pendente' | 'aceito' | 'em_andamento' | 'concluido' | 'cancelado';
+  foto_solicitacao_url?: string;
   foto_comprovante_url?: string;
+  inicio_companhia?: string;
+  fim_companhia?: string;
   created_at: string;
   updated_at: string;
 }

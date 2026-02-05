@@ -75,6 +75,7 @@ export default function CompanionshipsPage() {
   const [addressQuery, setAddressQuery] = useState('');
   const [addressResults, setAddressResults] = useState<Array<{ label: string; lat: number; lng: number }>>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [requestPhoto, setRequestPhoto] = useState<File | null>(null);
   const [createForm, setCreateForm] = useState({
     idoso_id: '',
     atividade: '',
@@ -161,7 +162,7 @@ export default function CompanionshipsPage() {
         local_descricao: createForm.local_descricao,
         latitude,
         longitude,
-      });
+      }, requestPhoto ?? undefined);
     },
     onSuccess: () => {
       toast({ title: 'SolicitaÃ§Ã£o criada com sucesso' });
@@ -169,6 +170,7 @@ export default function CompanionshipsPage() {
       setIsCreateDialogOpen(false);
       setAddressQuery('');
       setAddressResults([]);
+      setRequestPhoto(null);
       setCreateForm({
         idoso_id: '',
         atividade: '',
@@ -767,6 +769,15 @@ export default function CompanionshipsPage() {
                   }))
                 }
                 height={220}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Foto da solicitaÃ§Ã£o (opcional)</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setRequestPhoto(e.target.files?.[0] ?? null)}
               />
             </div>
           </div>

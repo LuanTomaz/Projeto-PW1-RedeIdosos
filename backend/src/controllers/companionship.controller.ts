@@ -36,7 +36,15 @@ const companionshipSchema = z.object({
 // Controller para criar uma nova companhia.
 export const createCompanionship = async (req: Request, res: Response) => {
     try {
-        const validated = companionshipSchema.parse(req.body);
+        const payload = { ...(req.body ?? {}) } as Record<string, any>;
+        if (typeof payload.localizacao === "string") {
+            try {
+                payload.localizacao = JSON.parse(payload.localizacao);
+            } catch {
+                // ignore JSON parse errors and let zod handle invalid payloads
+            }
+        }
+        const validated = companionshipSchema.parse(payload);
         const userRole = (req as AuthRequest).user?.papel;
         const userId = (req as AuthRequest).user?.id;
         let idosoId = validated.idoso_id;

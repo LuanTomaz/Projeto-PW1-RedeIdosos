@@ -34,12 +34,12 @@ export default function ReportsPage() {
 
   const { data: myReports = [], isLoading: isLoadingMine } = useQuery({
     queryKey: ['reports', 'mine'],
-    queryFn: async () => (await reportsAPI.getSummary()).data,
+    queryFn: async () => (await reportsAPI.getMine()).data,
   });
 
   const { data: allReports = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ['reports', 'all'],
-    queryFn: async () => (await reportsAPI.getStatistics()).data,
+    queryFn: async () => (await reportsAPI.getAll()).data,
     enabled: user?.papel === 'admin',
   });
 
