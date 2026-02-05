@@ -23,12 +23,13 @@ const companionshipSchema = z.object({
     localizacao: z.object({
         type: z.literal("Point"),
         coordinates: z.tuple([
-            z.number(), // latitude
-            z.number(), // longitude
+            z.coerce.number(), // latitude
+            z.coerce.number(), // longitude
         ]),
     }),
     local_descricao: z.string().optional(),
     status: z.enum(['pendente', 'aceita', 'em_andamento', 'concluida', 'cancelada']).optional(),
+    foto_solicitacao_url: z.string().optional(),
     foto_comprovante_url: z.string().optional()
 });
 
@@ -39,6 +40,7 @@ export const createCompanionship = async (req: Request, res: Response) => {
         const userRole = (req as AuthRequest).user?.papel;
         const userId = (req as AuthRequest).user?.id;
         let idosoId = validated.idoso_id;
+        let fotoSolicitacaoUrl = validated.foto_solicitacao_url;
 
         if (userRole === "idoso" && userId) {
             const elder = await ElderService.getElderByUserId(userId);
@@ -52,11 +54,20 @@ export const createCompanionship = async (req: Request, res: Response) => {
             return res.status(400).json({ error: "idoso_id ÃƒÂ© obrigatÃƒÂ³rio" });
         }
 
+        if (req.file) {
+            const result = await cloudinary.uploader.upload(
+                `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
+                { folder: "uploads/companionships" }
+            );
+            fotoSolicitacaoUrl = result.secure_url;
+        }
+
         const companionship = await CompanionshipService.createCompanionship({
             ...validated,
             idoso_id: idosoId as any,
             voluntario_id: validated.voluntario_id as any,
-            data: new Date(validated.data)
+            data: new Date(validated.data),
+            foto_solicitacao_url: fotoSolicitacaoUrl
         });
 
         // Neo4j
@@ -255,6 +266,44 @@ export const getCompanionshipsByUser = async (req: AuthRequest, res: Response) =
 
         const companionships = await CompanionshipService.getCompanionshipsByUser(userId, userType as "idoso" | "voluntario");
         res.json(companionships);
+    } catch (err: any) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+// Controller para obter uma companhia por ID.
+export const getCompanionshipById = async (req: Request, res: Response) => {
+    try {
+        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const companionship = await CompanionshipService.getCompanionshipById(id);
+        if (!companionship) {
+            return res.status(404).json({ error: "Companhia nao encontrada" });
+        }
+        res.json(companionship);
+    } catch (err: any) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+// Controller para ONG associar voluntario a uma solicitacao.
+export const matchCompanionship = async (req: AuthRequest, res: Response) => {
+    try {
+        const { companionship_id, voluntario_id } = req.body ?? {};
+
+        if (!companionship_id || !voluntario_id) {
+            return res.status(400).json({ error: "companionship_id e voluntario_id sao obrigatorios" });
+        }
+
+        const companionship = await CompanionshipService.assignVolunteerToCompanionship(
+            companionship_id,
+            voluntario_id
+        );
+
+        if (!companionship) {
+            return res.status(404).json({ error: "Companhia nao encontrada" });
+        }
+
+        res.json(companionship);
     } catch (err: any) {
         res.status(400).json({ error: err.message });
     }

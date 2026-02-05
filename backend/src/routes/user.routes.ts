@@ -1,5 +1,5 @@
 ﻿import { Router } from 'express';
-import { createUser, getUsers, validateUserController, blockUser, updateUserStatus, updateUserController, deleteUserController, getVolunteers, getElders, getOngs, getAdmins, getUnverifiedVolunteers, promoteToAdmin, devActivateUser } from '../controllers/user.controller';
+import { createUser, getUsers, validateUserController, blockUser, updateUserStatus, updateUserController, deleteUserController, getVolunteers, getElders, getOngs, getAdmins, getUnverifiedVolunteers, promoteToAdmin, devActivateUser, changeUserRole } from '../controllers/user.controller';
 import { verifyToken } from '../middlewares/auth_middleware';
 import { authorize } from '../middlewares/authorization.middleware';
 import { requireActiveUser } from '../middlewares/status';
@@ -14,9 +14,29 @@ router.get(
     getUsers
 );
 
+// Alias conforme especificacao
+router.get(
+    '/',
+    verifyToken,
+    requireActiveUser,
+    getUsers
+);
+
 // CriaÃ§Ã£o de usuÃ¡rio aberta
 router.post(
     '/create-user',
+    createUser
+);
+
+// Alias conforme especificacao
+router.post(
+    '/',
+    createUser
+);
+
+// Alias conforme especificacao
+router.post(
+    '/register',
     createUser
 );
 
@@ -27,6 +47,15 @@ router.put(
     authorize('admin', 'ong'),
     requireActiveUser,
     validateUserController
+);
+
+// Alias conforme especificacao
+router.put(
+    '/:id/role',
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    changeUserRole
 );
 
 // Endpoint para promover usuÃ¡rio a admin
@@ -67,6 +96,15 @@ router.put(
 // Endpoint para remover usuÃ¡rio
 router.delete(
     '/:id/delete',
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    deleteUserController
+);
+
+// Alias conforme especificacao
+router.delete(
+    '/:id',
     verifyToken,
     authorize('admin'),
     requireActiveUser,

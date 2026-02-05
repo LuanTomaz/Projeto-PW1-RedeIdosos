@@ -53,11 +53,12 @@ export const createUser = async (req: Request, res: Response) => {
 // Controlador para listar usuÃ¡rios
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const { papel } = req.query;
+    const { papel, role } = req.query;
 
     let users;
-    if (papel) {
-      users = await UserService.getUsersByRole(papel as string);
+    const roleParam = (papel ?? role) as string | undefined;
+    if (roleParam) {
+      users = await UserService.getUsersByRole(roleParam);
     } else {
       users = await UserService.getUsers();
     }
@@ -82,22 +83,23 @@ export const validateUserController = async (req: Request, res: Response) => {
   }
 };
 
-// Rota para alterar papel do usuÃ¡rio, atualmente nÃ£o usada
-// export const changeUserRole = async (req: Request, res: Response) => {
-//     try {
-//         const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-//         const { papel } = req.body;
+// Rota para alterar papel do usuÃ¡rio
+export const changeUserRole = async (req: Request, res: Response) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const { papel, role } = req.body ?? {};
 
-//         if (!papel) {
-//             return res.status(400).json({ error: "papel Ã© obrigatÃ³rio" });
-//         }
+    const roleParam = papel ?? role;
+    if (!roleParam) {
+      return res.status(400).json({ error: "papel e obrigatorio" });
+    }
 
-//         const user = await UserService.changeUserRole(id, papel);
-//         res.json({ message: "Papel do usuÃ¡rio alterado com sucesso", user });
-//     } catch (err: any) {
-//         res.status(400).json({ error: err.message });
-//     }
-// };
+    const user = await UserService.changeUserRole(id, roleParam);
+    res.json({ message: "Papel do usuario alterado com sucesso", user });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+};
 
 // Endpoint para bloquear usuÃ¡rio
 export const blockUser = async (req: Request, res: Response) => {

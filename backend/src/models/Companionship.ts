@@ -13,7 +13,10 @@ export interface ICompanionship extends Document {
     },
     local_descricao?: string;
     status: 'pendente' | 'aceita' | 'em_andamento' | 'concluida' | 'cancelada';
+    foto_solicitacao_url?: string;
     foto_comprovante_url?: string;
+    inicio_companhia?: Date;
+    fim_companhia?: Date;
 }
 
 const CompanionshipSchema: Schema = new Schema({
@@ -64,7 +67,10 @@ const CompanionshipSchema: Schema = new Schema({
         enum: ['pendente', 'aceita', 'em_andamento', 'concluida', 'cancelada'],
         default: 'pendente'
     },
-    foto_comprovante_url: { type: String }
+    foto_solicitacao_url: { type: String },
+    foto_comprovante_url: { type: String },
+    inicio_companhia: { type: Date },
+    fim_companhia: { type: Date }
 }, { timestamps: true });
 
 CompanionshipSchema.index({ localizacao: "2dsphere" });

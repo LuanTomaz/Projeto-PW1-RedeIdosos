@@ -14,10 +14,27 @@ router.get(
     getReviews
 );
 
+// Alias conforme especificacao
+router.get(
+    "/",
+    verifyToken,
+    requireActiveUser,
+    getReviews
+);
+
 // Rota para criar um novo review
 router.post(
     "/create-review", 
     verifyToken, 
+    upload.single("foto"),
+    requireActiveUser,
+    createReview
+);
+
+// Alias conforme especificacao
+router.post(
+    "/",
+    verifyToken,
     upload.single("foto"),
     requireActiveUser,
     createReview
@@ -32,10 +49,27 @@ router.put(
     updateReview
 );
 
+// Alias conforme especificacao
+router.put(
+    "/:id",
+    verifyToken,
+    upload.single("foto"),
+    requireActiveUser,
+    updateReview
+);
+
 // Rota para deletar um review
 router.delete(
     "/:id/delete-review", 
     verifyToken, 
+    requireActiveUser,
+    deleteReview
+);
+
+// Alias conforme especificacao
+router.delete(
+    "/:id",
+    verifyToken,
     requireActiveUser,
     deleteReview
 );

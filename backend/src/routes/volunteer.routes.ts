@@ -42,12 +42,30 @@ router.get(
     getVolunteers
 );
 
+// Alias conforme especificacao
+router.get(
+    "/",
+    verifyToken,
+    authorize("admin", "ong", "voluntario", "idoso"),
+    requireActiveUser,
+    getVolunteers
+);
+
 // Rota para editar voluntário (apenas admin)
 router.put(
     "/:id/update", 
     verifyToken,
     authorize("admin"),
     requireActiveUser, 
+    updateVolunteer
+);
+
+// Alias conforme especificacao
+router.put(
+    "/:id",
+    verifyToken,
+    authorize("admin"),
+    requireActiveUser,
     updateVolunteer
 );
 
@@ -58,6 +76,40 @@ router.delete(
     authorize("admin"),
     requireActiveUser,
     deleteVolunteer
+);
+
+// Alias conforme especificacao
+router.delete(
+    "/:id",
+    verifyToken,
+    authorize("admin"),
+    requireActiveUser,
+    deleteVolunteer
+);
+
+// Aliases conforme especificacao
+router.get(
+    "/me",
+    verifyToken,
+    authorize("voluntario"),
+    requireActiveUser,
+    getMyProfile
+);
+
+router.put(
+    "/me",
+    verifyToken,
+    authorize("voluntario"),
+    requireActiveUser,
+    updateMyProfile
+);
+
+router.put(
+    "/me/location",
+    verifyToken,
+    authorize("voluntario"),
+    requireActiveUser,
+    updateMyLocation
 );
 
 export default router;

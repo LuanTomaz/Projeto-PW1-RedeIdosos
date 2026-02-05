@@ -26,6 +26,9 @@ const autoUpdateToInProgress = async () => {
         const start = getStartDateTime(item.data, item.hora);
         if (now >= start) {
             item.status = "em_andamento";
+            if (!item.inicio_companhia) {
+                item.inicio_companhia = now;
+            }
             await item.save();
         }
     });
@@ -108,7 +111,7 @@ export const completeCompanionship = async (companionshipId: string, foto_compro
     // Marcar como concluÃ­da
     return await applyPopulate(Companionship.findByIdAndUpdate(
         companionshipId,
-        { status: "concluida", foto_comprovante_url },
+        { status: "concluida", foto_comprovante_url, fim_companhia: new Date() },
         { new: true }
     ));
 };
@@ -120,9 +123,17 @@ export const updateCompanionshipStatus = async (companionshipId: string, novoSta
         throw new Error(`Status invÃ¡lido. Valores aceitos: ${statusValidos.join(", ")}`);
     }
 
+    const updatePayload: Partial<ICompanionship> = { status: novoStatus as any };
+    if (novoStatus === "em_andamento") {
+        updatePayload.inicio_companhia = new Date();
+    }
+    if (novoStatus === "concluida") {
+        updatePayload.fim_companhia = new Date();
+    }
+
     return await applyPopulate(Companionship.findByIdAndUpdate(
         companionshipId,
-        { status: novoStatus },
+        updatePayload,
         { new: true }
     ));
 };
@@ -139,4 +150,33 @@ export const getCompanionshipsByUser = async (userId: string, userType: "idoso" 
         return await applyPopulate(Companionship.find({ voluntario_id: volunteer._id }));
     }
     throw new Error("Tipo de usuÃ¡rio invÃ¡lido");
+};
+
+export const assignVolunteerToCompanionship = async (companionshipId: string, volunteerId: string) => {
+    const volunteer =
+        (await Volunteer.findById(volunteerId)) ??
+        (await Volunteer.findOne({ usuario_id: volunteerId }));
+    if (!volunteer) {
+        throw new Error("Voluntario nao encontrado");
+    }
+    if (!volunteer.verificado) {
+        throw new Error("Voluntario nao verificado");
+    }
+
+    const companionship = await Companionship.findById(companionshipId);
+    if (!companionship) {
+        return null;
+    }
+    if (companionship.voluntario_id) {
+        throw new Error("Companhia ja possui voluntario");
+    }
+    if (companionship.status !== "pendente") {
+        throw new Error("Companhia nao esta pendente");
+    }
+
+    return await applyPopulate(Companionship.findByIdAndUpdate(
+        companionshipId,
+        { voluntario_id: volunteer._id, status: "aceita" },
+        { new: true }
+    ));
 };

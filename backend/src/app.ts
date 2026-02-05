@@ -12,6 +12,9 @@ import companionshipRoutes from './routes/companionship.routes';
 import ongRoutes from './routes/ong.routes';
 import reviewRoutes from './routes/review.routes';
 import reportRoutes from './routes/report.routes';
+import mapRoutes from './routes/map.routes';
+import publicRoutes from './routes/public.routes';
+import verificationRoutes from './routes/verification.routes';
 
 dotenv.config();
 
@@ -25,6 +28,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Rota para autenticação de usuários
 app.use('/api/auth', authRoutes);
+app.use('/', authRoutes);
 
 // Rota para gerenciamento de usuários
 app.use('/api/users', userRoutes);
@@ -37,6 +41,22 @@ app.use('/api/companionships', companionshipRoutes);
 app.use('/api/ongs', ongRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/map', mapRoutes);
+app.use('/api/verifications', verificationRoutes);
+
+// Rotas publicas (sem /api para aderir ao enunciado)
+app.use('/', publicRoutes);
+app.use('/map', mapRoutes);
+app.use('/verifications', verificationRoutes);
+app.use('/upload', fileRoutes);
+app.use('/files', fileRoutes);
+app.use('/users', userRoutes);
+app.use('/elders', elderRoutes);
+app.use('/volunteers', volunteerRoutes);
+app.use('/companionships', companionshipRoutes);
+app.use('/ongs', ongRoutes);
+app.use('/reviews', reviewRoutes);
+app.use('/reports', reportRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err.stack);

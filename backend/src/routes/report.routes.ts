@@ -80,11 +80,37 @@ router.get(
 );
 
 // Relatórios Dinâmicos, por enquanto desativados
-// router.get("/generate/summary", verifyToken, generateSummaryReport);
-// router.get("/generate/statistics", verifyToken, generateStatisticsReport);
-// router.get("/generate/impact", generateImpactReport); // Público
-// router.get("/generate/locations", verifyToken, generateLocationsReport);
-// router.get("/generate/elders", verifyToken, generateEldersReport);
+router.get(
+    "/summary",
+    verifyToken,
+    authorize("admin"),
+    requireActiveUser,
+    generateSummaryReport
+);
+
+router.get(
+    "/statistics",
+    verifyToken,
+    authorize("admin"),
+    requireActiveUser,
+    generateStatisticsReport
+);
+
+router.get(
+    "/locations",
+    verifyToken,
+    authorize("admin"),
+    requireActiveUser,
+    generateLocationsReport
+);
+
+router.get(
+    "/elders",
+    verifyToken,
+    authorize("admin"),
+    requireActiveUser,
+    generateEldersReport
+);
 
 
 

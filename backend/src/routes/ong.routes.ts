@@ -50,6 +50,15 @@ router.get(
     getOngs
 );
 
+// Alias conforme especificacao
+router.get(
+    "/",
+    verifyToken,
+    authorize('admin', 'ong', 'voluntario', 'idoso'),
+    requireActiveUser,
+    getOngs
+);
+
 // Rota para criar uma nova ONG (por enquando off)
 // router.post("/", verifyToken, createOng);
 
@@ -62,9 +71,27 @@ router.put(
     updateOng
 );
 
+// Alias conforme especificacao
+router.put(
+    "/:id",
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    updateOng
+);
+
 // Rota para deletar uma ONG pelo ID
 router.delete(
     "/:id/delete-ong",
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    deleteOng
+);
+
+// Alias conforme especificacao
+router.delete(
+    "/:id",
     verifyToken,
     authorize('admin'),
     requireActiveUser,

@@ -2,12 +2,14 @@ import { Router } from "express";
 import {
     createCompanionship, 
     getCompanionships, 
+    getCompanionshipById,
     updateCompanionship, 
     deleteCompanionship, 
     acceptCompanionship, 
     completeCompanionship, 
     updateCompanionshipStatus, 
-    getCompanionshipsByUser
+    getCompanionshipsByUser,
+    matchCompanionship
 } from "../controllers/companionship.controller";
 import { verifyToken } from "../middlewares/auth_middleware";
 import { authorize } from "../middlewares/authorization.middleware";
@@ -25,9 +27,28 @@ router.get(
     getCompanionships
 );
 
+// Alias conforme especificacao
+router.get(
+    "/",
+    verifyToken,
+    authorize('admin', 'ong', 'voluntario', 'idoso'),
+    requireActiveUser,
+    getCompanionships
+);
+
+
 // Rota para listar companhias do usuário autenticado.
 router.get(
     "/my-companionships",
+    verifyToken,
+    authorize('voluntario', 'idoso'),
+    requireActiveUser,
+    getCompanionshipsByUser
+);
+
+// Alias conforme especificacao
+router.get(
+    "/me",
     verifyToken,
     authorize('voluntario', 'idoso'),
     requireActiveUser,
@@ -39,6 +60,17 @@ router.post(
     "/create-companionship",
     verifyToken,
     authorize('admin', 'ong', 'idoso'),
+    upload.single('foto_solicitacao'),
+    requireActiveUser,
+    createCompanionship
+);
+
+// Alias conforme especificacao
+router.post(
+    "/",
+    verifyToken,
+    authorize('admin', 'ong', 'idoso'),
+    upload.single('foto_solicitacao'),
     requireActiveUser,
     createCompanionship
 );
@@ -80,6 +112,23 @@ router.put(
     completeCompanionship
 );
 
+// Rota para ONG intermediar solicitacao e associar voluntario.
+router.post(
+    "/match",
+    verifyToken,
+    authorize('ong', 'admin'),
+    requireActiveUser,
+    matchCompanionship
+);
+
+// Rota para obter uma companhia pelo ID.
+router.get(
+    "/:id",
+    verifyToken,
+    authorize('admin', 'ong', 'voluntario', 'idoso'),
+    requireActiveUser,
+    getCompanionshipById
+);
 // Rota para deletar uma companhia.
 router.delete(
     "/:id/delete",
@@ -90,3 +139,4 @@ router.delete(
 );
 
 export default router;
+

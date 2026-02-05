@@ -49,9 +49,27 @@ router.get(
     getElders
 );
 
+// Alias conforme especificacao
+router.get(
+    "/",
+    verifyToken,
+    authorize('admin', 'ong', 'voluntario', 'idoso'),
+    requireActiveUser,
+    getElders
+);
+
 // Rota para atualizar um idoso pelo ID
 router.put(
     "/:id/update-elder",
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    updateElder
+);
+
+// Alias conforme especificacao
+router.put(
+    "/:id",
     verifyToken,
     authorize('admin'),
     requireActiveUser,
@@ -65,6 +83,40 @@ router.delete(
     authorize('admin'),
     requireActiveUser,
     deleteElderController
+);
+
+// Alias conforme especificacao
+router.delete(
+    "/:id",
+    verifyToken,
+    authorize('admin'),
+    requireActiveUser,
+    deleteElderController
+);
+
+// Aliases conforme especificacao
+router.get(
+    "/me",
+    verifyToken,
+    authorize('idoso'),
+    requireActiveUser,
+    getMyProfile
+);
+
+router.put(
+    "/me",
+    verifyToken,
+    authorize('idoso'),
+    requireActiveUser,
+    updateMyProfile
+);
+
+router.put(
+    "/me/location",
+    verifyToken,
+    authorize('idoso'),
+    requireActiveUser,
+    updateMyLocation
 );
 
 export default router;

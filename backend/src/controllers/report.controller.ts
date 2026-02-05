@@ -90,11 +90,11 @@ export const deleteReport = async (req: Request, res: Response) => {
 
 export const generateSummaryReport = async (req: Request, res: Response) => {
     try {
-        const { data_inicio, data_fim } = req.query;
+        const { data_inicio, data_fim, from, to } = req.query;
 
         const summary = await ReportService.generateSummaryReport(
-            data_inicio ? new Date(data_inicio as string) : undefined,
-            data_fim ? new Date(data_fim as string) : undefined
+            (from ?? data_inicio) ? new Date((from ?? data_inicio) as string) : undefined,
+            (to ?? data_fim) ? new Date((to ?? data_fim) as string) : undefined
         );
 
         res.json(summary);
