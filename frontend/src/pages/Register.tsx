@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -14,16 +14,29 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const registerSchema = z.object({
   nome: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres'),
-  email: z.string().email('E-mail inválido'),
+  email: z.string().email('E-mail invalido'),
   senha: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
   confirmarSenha: z.string(),
   telefone: z.string().optional(),
+  cnpj: z.string().optional(),
   tipo_cadastro: z.enum(['voluntario', 'idoso', 'ong'] as const, {
     required_error: 'Selecione um tipo de conta',
   }),
-}).refine((data) => data.senha === data.confirmarSenha, {
-  message: 'As senhas não coincidem',
-  path: ['confirmarSenha'],
+}).superRefine((data, ctx) => {
+  if (data.senha !== data.confirmarSenha) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'As senhas não coincidem',
+      path: ['confirmarSenha'],
+    });
+  }
+  if (data.tipo_cadastro === 'ong' && !data.cnpj?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'CNPJ obrigatorio para ONG',
+      path: ['cnpj'],
+    });
+  }
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -31,7 +44,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 const roleOptions = [
   {
     value: 'voluntario',
-    label: 'Voluntário',
+    label: 'Voluntario',
     description: 'Quero ajudar idosos',
     icon: HandHeart,
     color: 'bg-orange-100 text-orange-600 border-orange-200',
@@ -80,6 +93,7 @@ export default function Register() {
       senha: data.senha,
       tipo_cadastro: data.tipo_cadastro,
       telefone: data.telefone,
+      cnpj: data.cnpj,
     });
     setIsLoading(false);
     
@@ -110,7 +124,7 @@ export default function Register() {
             </div>
 
             <h1 className="text-4xl xl:text-5xl font-display font-bold text-white mb-6 leading-tight">
-              Junte-se à nossa<br />
+              Junte-se a nossa<br />
               <span className="text-white/90">rede de cuidado</span>
             </h1>
 
@@ -121,7 +135,7 @@ export default function Register() {
 
             <div className="grid grid-cols-3 gap-4">
               {[
-                { icon: Users2, label: 'Voluntários' },
+                { icon: Users2, label: 'VoluntÃ¡rios' },
                 { icon: UserCircle, label: 'Idosos' },
                 { icon: Building2, label: 'ONGs' },
               ].map((item, i) => (
@@ -194,12 +208,14 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="nome">Nome completo</Label>
+                  <Label htmlFor="nome">
+                    {selectedRole === 'ong' ? 'Nome da ONG' : 'Nome completo'}
+                  </Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       id="nome"
-                      placeholder="Seu nome"
+                      placeholder={selectedRole === 'ong' ? 'Nome da ONG' : 'Seu nome'}
                       className="pl-10"
                       {...register('nome')}
                     />
@@ -208,6 +224,24 @@ export default function Register() {
                     <p className="text-sm text-destructive">{errors.nome.message}</p>
                   )}
                 </div>
+
+                {selectedRole === 'ong' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="cnpj">CNPJ</Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="cnpj"
+                        placeholder="00.000.000/0000-00"
+                        className="pl-10"
+                        {...register('cnpj')}
+                      />
+                    </div>
+                    {errors.cnpj && (
+                      <p className="text-sm text-destructive">{errors.cnpj.message}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
@@ -297,7 +331,7 @@ export default function Register() {
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Já tem uma conta?{' '}
+                  JÃ¡ tem uma conta?{' '}
                   <Link
                     to="/login"
                     className="text-primary font-medium hover:underline"
@@ -313,4 +347,7 @@ export default function Register() {
     </div>
   );
 }
+
+
+
 

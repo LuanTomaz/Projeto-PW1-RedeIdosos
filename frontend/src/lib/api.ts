@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 export const API_BASE_URL = 'http://localhost:3000';
 
@@ -570,6 +570,7 @@ export interface RegisterData {
   senha: string;
   tipo_cadastro: 'idoso' | 'voluntario' | 'ong';
   telefone?: string;
+  cnpj?: string;
 }
 
 export interface CreateUserData {
@@ -733,3 +734,4 @@ export interface UserDocumentsData {
 }
 
 export default api;
+
