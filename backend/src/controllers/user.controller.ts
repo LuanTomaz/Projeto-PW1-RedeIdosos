@@ -18,6 +18,14 @@ const createUserSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value && value.trim() !== "" ? value : undefined)),
+}).superRefine((data, ctx) => {
+  if (data.tipo_cadastro === "ong" && !data.telefone) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Telefone Ã© obrigatÃ³rio para ONG",
+      path: ["telefone"],
+    });
+  }
 });
 
 // Controlador para criaÃ§Ã£o de usuÃ¡rio
@@ -301,7 +309,6 @@ export const devActivateUser = async (req: Request, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 
 

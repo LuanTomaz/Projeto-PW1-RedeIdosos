@@ -24,7 +24,7 @@ router.post(
 router.put(
     '/:id/validate',
     verifyToken,
-    authorize('admin'),
+    authorize('admin', 'ong'),
     requireActiveUser,
     validateUserController
 );
@@ -42,7 +42,7 @@ router.put(
 router.put(
     '/:id/block-user',
     verifyToken,
-    authorize('admin'),
+    authorize('admin', 'ong'),
     requireActiveUser,
     blockUser
 );
@@ -111,4 +111,3 @@ router.post(
 );
 
 export default router;
-

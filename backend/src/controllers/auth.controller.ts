@@ -61,7 +61,7 @@ const registerOngSchema = z.object({
     senha_hash: z.string().min(6),
     cnpj: z.string(),
     responsavel: z.string(),
-    telefone: z.string().optional(),
+    telefone: z.string().min(1),
     localizacao: z.object({
         type: z.literal("Point"),
         coordinates: z.tuple([
@@ -228,13 +228,11 @@ export const createOngProfile = async (req: AuthRequest, res: Response) => {
     const validated = z.object({
       cnpj: z.string(),
       responsavel: z.string(),
-      telefone: z.string().optional(),
+      telefone: z.string().min(1),
       localizacao: z.object({
         type: z.literal("Point"),
         coordinates: z.tuple([z.number(), z.number()]),
       }),
-      rg: z.string().optional(),
-      cpf: z.string().optional(),
       comprovante_residencia_url: z.string().optional(),
       foto_perfil_url: z.string().optional(),
     }).parse(req.body);
@@ -258,8 +256,6 @@ export const createOngProfile = async (req: AuthRequest, res: Response) => {
 
     await User.findByIdAndUpdate(user._id, {
       ativo: true,
-      ...(validated.rg && { rg: validated.rg }),
-      ...(validated.cpf && { cpf: validated.cpf }),
       ...(validated.comprovante_residencia_url && { comprovante_residencia_url: validated.comprovante_residencia_url }),
       ...(validated.foto_perfil_url && { foto_perfil_url: validated.foto_perfil_url }),
     });

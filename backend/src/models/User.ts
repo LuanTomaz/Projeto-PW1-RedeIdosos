@@ -13,6 +13,7 @@ export interface IUser extends Document {
     comprovante_residencia_url?: string;
     verificado: boolean;
     ativo: boolean;
+    bloqueado: boolean;
 }
 
 const UserSchema: Schema = new Schema({
@@ -59,6 +60,9 @@ const UserSchema: Schema = new Schema({
     },
     ativo: {
         type: Boolean, default: true
+    },
+    bloqueado: {
+        type: Boolean, default: false
     },
 }, { timestamps: true });
 

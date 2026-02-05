@@ -9,7 +9,8 @@ export const createUser = async (data: Partial<IUser>) => {
         senha: hashedPassword,
         papel: "pending",
         verificado: false,
-        ativo: false
+        ativo: false,
+        bloqueado: false
     });
     return await user.save();
 };
@@ -41,6 +42,9 @@ export const validateUser = async (userId: string) => {
     throw new Error("Usuário não encontrado");
   }
 
+  if (user.bloqueado) {
+    throw new Error("Usuário bloqueado");
+  }
   if (!user.ativo) {
     throw new Error("Usuário ainda não completou o perfil");
   }
@@ -63,6 +67,7 @@ export const validateUser = async (userId: string) => {
 
   user.papel = novoPapel;
   user.verificado = true;
+  user.bloqueado = false;
 
   await user.save();
 
@@ -100,7 +105,7 @@ export const changeUserStatus = async (userId: string, novoStatus: boolean) => {
 export const blockUser = async (userId: string) => {
     return await User.findByIdAndUpdate(
         userId,
-        { verificado: false },
+        { verificado: false, ativo: false, bloqueado: true },
         { new: true }
     );
 };
@@ -112,3 +117,4 @@ export const getUsersByRole = async (papel: string) => {
     }
     return await User.find({ papel });
 };
+
